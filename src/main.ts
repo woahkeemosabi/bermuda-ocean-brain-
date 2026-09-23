@@ -29,7 +29,7 @@ const MOBILE_LAYER_DEFINITIONS = [
   { id: 'bermuda-subsea-cables', label: 'Subsea Cables', glyph: '⌁' },
 ];
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || '';
+const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || import.meta.env.VITE_CESIU_ION_TOKEN || '';
 const HAS_3D_CREDENTIALS = Boolean(GOOGLE_MAPS_API_KEY || CESIUM_ION_TOKEN);
 
 type ThreeDRecovery = { tileset: any | null; errorCode: string | null };
