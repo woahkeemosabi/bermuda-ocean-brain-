@@ -82,16 +82,38 @@ function createOceanBrainCatalog(context: any, scene: any) {
   });
 }
 
+function configureRenderQuality(viewer: any, tileset: any) {
+  // Render above CSS-pixel resolution on Retina phones without forcing the
+  // full 3x device pixel ratio, which is too expensive for a live Cesium scene.
+  const deviceScale = Number(window.devicePixelRatio || 1);
+  viewer.resolutionScale = Math.min(Math.max(deviceScale * 0.65, 1.25), 1.85);
+
+  if (viewer.scene?.globe) {
+    viewer.scene.globe.maximumScreenSpaceError = 1.35;
+  }
+  if (viewer.scene?.fog) viewer.scene.fog.enabled = false;
+
+  if (tileset) {
+    // Lower SSE = request sharper 3D tiles. Keep this conservative for iPhone.
+    tileset.maximumScreenSpaceError = 8;
+    tileset.preloadWhenHidden = false;
+    tileset.preloadFlightDestinations = true;
+  }
+  viewer.scene?.requestRender?.();
+}
+
 function focusBermuda(viewer: any, duration = 1.15, photoreal3D = HAS_3D_CREDENTIALS) {
   const cameraOptions = {
     destination: Cesium.Cartesian3.fromDegrees(
       BERMUDA.longitude,
       BERMUDA.latitude,
-      photoreal3D ? 42000 : 62000,
+      photoreal3D ? 56000 : 61000,
     ),
     orientation: {
-      heading: Cesium.Math.toRadians(2),
-      pitch: Cesium.Math.toRadians(-62),
+      // Near-nadir God’s-eye framing keeps Bermuda in the optical centre of
+      // a portrait phone instead of pushing it toward the bottom edge.
+      heading: Cesium.Math.toRadians(43),
+      pitch: Cesium.Math.toRadians(-89.2),
       roll: 0,
     },
   };
@@ -176,9 +198,13 @@ function installMobileExperience(components: any) {
       const next = button.dataset.active !== 'true';
       button.disabled = true;
       try {
-        await dataManager.setEnabled(id, next, { origin: 'programmatic' });
+        const changed = await dataManager.setEnabled(id, next, { origin: 'user' });
+        if (changed === false) throw new Error(`${id} lifecycle rejected`);
         button.dataset.active = String(next);
+        button.removeAttribute('data-error');
       } catch (error) {
+        button.dataset.active = 'false';
+        button.dataset.error = 'true';
         console.warn(`[Ocean Brain mobile:${id}]`, error);
       } finally {
         button.disabled = false;
@@ -249,6 +275,7 @@ async function start() {
   const marinePanelObserver = installMarinePanelBranding();
   applyOceanBrainBrand();
   const photoreal3D = Boolean(components.scene.tileset);
+  configureRenderQuality(viewer, components.scene.tileset);
   const mobileShell = installMobileExperience(components);
 
   focusBermuda(viewer, 0, photoreal3D);

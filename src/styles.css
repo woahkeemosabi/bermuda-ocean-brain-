@@ -392,3 +392,10 @@
     letter-spacing: .13em;
   }
 }
+
+@media (max-width: 720px) {
+  .ob-layer-toggle[data-error='true'] {
+    border-color: rgba(255, 112, 112, .42);
+    color: rgba(255, 190, 190, .9);
+  }
+}

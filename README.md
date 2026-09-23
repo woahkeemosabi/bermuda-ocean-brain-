@@ -22,3 +22,10 @@ The app works without the Google key using the upstream God’s Eye fallback ren
 - Clean map on launch; marine layers are opt-in.
 - Bermuda MSP subsea cable layer replaces the global TeleGeography mobile layer.
 - Dense Point GeoJSON uses compact points instead of Cesium pin billboards.
+
+
+## v5 mobile fixes
+- Near-nadir Bermuda camera framing
+- Retina render-quality tuning
+- ArcGIS JSON to GeoJSON marine layer bridge
+- Bermuda spatial filter for heavy cable data
