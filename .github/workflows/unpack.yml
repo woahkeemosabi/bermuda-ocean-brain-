@@ -1,0 +1,50 @@
+name: Unpack Bermuda Ocean Brain
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack project
+        run: |
+          ZIP=$(find . -maxdepth 1 -type f -name 'bermuda-ocean-brain-vercel-ready*.zip' -print -quit)
+
+          if [ -z "$ZIP" ]; then
+            echo "No project ZIP found."
+            exit 0
+          fi
+
+          rm -rf _unpack
+          mkdir _unpack
+          unzip -o "$ZIP" -d _unpack
+
+          cp -a _unpack/bermuda-ocean-brain-vercel/. .
+
+          rm -rf _unpack
+          rm -f "$ZIP"
+
+      - name: Commit project files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Unpack Bermuda Ocean Brain project"
+            git push
+          fi
