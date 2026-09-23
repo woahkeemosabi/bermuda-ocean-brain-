@@ -16,15 +16,8 @@ import {
 } from './oceanBrainMarineLayers';
 
 const BERMUDA = { latitude: 32.3078, longitude: -64.7505 };
-const DEFAULT_VISIBLE_GODS_EYE_LAYERS = new Set([
-  'telegeography-submarine-cables',
-]);
-const DEFAULT_OCEAN_BRAIN_LAYERS = [
-  'bermuda-territorial-seas',
-  'bermuda-coral-reef-type',
-  'bermuda-seagrass',
-  'bermuda-shelf',
-];
+const DEFAULT_VISIBLE_GODS_EYE_LAYERS = new Set<string>();
+const DEFAULT_OCEAN_BRAIN_LAYERS: string[] = [];
 const MOBILE_LAYER_DEFINITIONS = [
   { id: 'bermuda-territorial-seas', label: 'Territorial Sea', glyph: '◎' },
   { id: 'bermuda-coral-reef-type', label: 'Coral Reef', glyph: '✦' },
@@ -33,10 +26,11 @@ const MOBILE_LAYER_DEFINITIONS = [
   { id: 'bermuda-slope', label: 'Slope', glyph: '◢' },
   { id: 'bermuda-seamounts', label: 'Seamounts', glyph: '▲' },
   { id: 'bermuda-eez', label: 'EEZ', glyph: '◉' },
-  { id: 'telegeography-submarine-cables', label: 'Subsea Cables', glyph: '⌁' },
+  { id: 'bermuda-subsea-cables', label: 'Subsea Cables', glyph: '⌁' },
 ];
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || '';
+const HAS_3D_CREDENTIALS = Boolean(GOOGLE_MAPS_API_KEY || CESIUM_ION_TOKEN);
 
 function applyOceanBrainBrand() {
   document.title = 'Bermuda Ocean Brain';
@@ -88,12 +82,12 @@ function createOceanBrainCatalog(context: any, scene: any) {
   });
 }
 
-function focusBermuda(viewer: any, duration = 1.15) {
+function focusBermuda(viewer: any, duration = 1.15, photoreal3D = HAS_3D_CREDENTIALS) {
   const cameraOptions = {
     destination: Cesium.Cartesian3.fromDegrees(
       BERMUDA.longitude,
       BERMUDA.latitude,
-      GOOGLE_MAPS_API_KEY ? 42000 : 62000,
+      photoreal3D ? 42000 : 62000,
     ),
     orientation: {
       heading: Cesium.Math.toRadians(2),
@@ -112,6 +106,11 @@ function focusBermuda(viewer: any, duration = 1.15) {
 function installMobileExperience(components: any) {
   if (!window.matchMedia('(max-width: 720px)').matches) return null;
 
+  const photoreal3D = Boolean(components.scene.tileset);
+  const mapSourceLabel = photoreal3D
+    ? (GOOGLE_MAPS_API_KEY ? 'GOOGLE PHOTOREALISTIC 3D' : 'GOOGLE 3D · CESIUM ION')
+    : 'ESRI SATELLITE FALLBACK';
+
   document.documentElement.classList.add('ocean-brain-mobile');
   const shell = document.createElement('div');
   shell.className = 'ob-mobile-shell';
@@ -124,7 +123,7 @@ function installMobileExperience(components: any) {
           <span>LIVE MARINE INTELLIGENCE</span>
         </div>
       </div>
-      <div class="ob-mobile-mode">${GOOGLE_MAPS_API_KEY ? '3D' : 'SAT'}</div>
+      <div class="ob-mobile-mode">${photoreal3D ? '3D' : 'SAT'}</div>
     </div>
     <button class="ob-sheet-scrim" type="button" aria-label="Close ocean layers"></button>
     <section class="ob-layer-sheet" aria-label="Ocean layers">
@@ -145,7 +144,7 @@ function installMobileExperience(components: any) {
         `).join('')}
       </div>
       <div class="ob-sheet-footer">
-        <span>${GOOGLE_MAPS_API_KEY ? 'GOOGLE PHOTOREALISTIC 3D' : 'ESRI SATELLITE FALLBACK'}</span>
+        <span>${mapSourceLabel}</span>
         <button class="ob-clear-layers" type="button">CLEAR</button>
       </div>
     </section>
@@ -168,7 +167,7 @@ function installMobileExperience(components: any) {
   shell.querySelector<HTMLButtonElement>('.ob-layers-button')?.addEventListener('click', () => setOpen(true));
   shell.querySelector<HTMLButtonElement>('.ob-sheet-close')?.addEventListener('click', () => setOpen(false));
   shell.querySelector<HTMLButtonElement>('.ob-sheet-scrim')?.addEventListener('click', () => setOpen(false));
-  shell.querySelector<HTMLButtonElement>('.ob-center-button')?.addEventListener('click', () => focusBermuda(components.scene.viewer, 0.9));
+  shell.querySelector<HTMLButtonElement>('.ob-center-button')?.addEventListener('click', () => focusBermuda(components.scene.viewer, 0.9, photoreal3D));
 
   for (const button of layerButtons) {
     button.addEventListener('click', async () => {
@@ -249,10 +248,11 @@ async function start() {
   const viewer = components.scene.viewer;
   const marinePanelObserver = installMarinePanelBranding();
   applyOceanBrainBrand();
+  const photoreal3D = Boolean(components.scene.tileset);
   const mobileShell = installMobileExperience(components);
 
-  focusBermuda(viewer, 0);
-  window.setTimeout(() => focusBermuda(viewer, 0.9), 500);
+  focusBermuda(viewer, 0, photoreal3D);
+  window.setTimeout(() => focusBermuda(viewer, 0.9, photoreal3D), 500);
 
   await Promise.allSettled(
     DEFAULT_OCEAN_BRAIN_LAYERS.map((layerId) =>
@@ -262,16 +262,18 @@ async function start() {
     ),
   );
 
-  window.setTimeout(() => focusBermuda(viewer, 0.8), 1600);
+  window.setTimeout(() => focusBermuda(viewer, 0.8, photoreal3D), 1600);
   relabelMarineGroup();
 
   const activeStyle = document.querySelector<HTMLElement>('#active-style-name');
-  if (activeStyle) activeStyle.textContent = GOOGLE_MAPS_API_KEY ? 'BERMUDA // PHOTOREAL 3D' : 'BERMUDA // SATELLITE';
+  if (activeStyle) activeStyle.textContent = photoreal3D ? 'BERMUDA // PHOTOREAL 3D' : 'BERMUDA // SATELLITE';
 
   if (!mobileShell) {
     const runtimeStatus = document.createElement('div');
     runtimeStatus.className = 'ocean-brain-status';
-    runtimeStatus.textContent = GOOGLE_MAPS_API_KEY ? 'GOOGLE PHOTOREALISTIC 3D · ACTIVE' : 'SATELLITE FALLBACK · GOOGLE 3D KEY NOT SET';
+    runtimeStatus.textContent = photoreal3D
+      ? (GOOGLE_MAPS_API_KEY ? 'GOOGLE PHOTOREALISTIC 3D · ACTIVE' : 'GOOGLE 3D · CESIUM ION · ACTIVE')
+      : 'SATELLITE FALLBACK · 3D UNAVAILABLE';
     document.body.appendChild(runtimeStatus);
   }
 
@@ -282,7 +284,7 @@ async function start() {
       dataManager: components.data.dataManager,
       styleManager: components.controls.styleManager,
       marinePanelObserver,
-      focusBermuda: () => focusBermuda(viewer),
+      focusBermuda: () => focusBermuda(viewer, 1.15, photoreal3D),
     },
   });
 }

@@ -16,3 +16,9 @@ Production-oriented Vercel package using the actual open-source God's Eye View r
 4. Deploy production.
 
 The app works without the Google key using the upstream God’s Eye fallback renderer.
+
+
+## Mobile v3
+- Clean map on launch; marine layers are opt-in.
+- Bermuda MSP subsea cable layer replaces the global TeleGeography mobile layer.
+- Dense Point GeoJSON uses compact points instead of Cesium pin billboards.

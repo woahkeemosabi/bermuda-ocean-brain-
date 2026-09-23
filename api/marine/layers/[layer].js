@@ -8,6 +8,7 @@ const LAYERS = {
   'shelf': 302,
   'slope': 300,
   'seamounts': 305,
+  'subsea-cables': 297,
 };
 
 export default async function handler(req, res) {

@@ -19,6 +19,7 @@ export const BERMUDA_MARINE_LAYERS: readonly MarineLayerDefinition[] = Object.fr
   { id: 'bermuda-shelf', key: 'shelf', name: 'Bermuda Shelf', icon: '▱', color: '#38a7ff', fillAlpha: 0.045, token: '6' },
   { id: 'bermuda-slope', key: 'slope', name: 'Bermuda Slope', icon: '◢', color: '#566dff', fillAlpha: 0.04, token: '7' },
   { id: 'bermuda-seamounts', key: 'seamounts', name: 'Seamounts', icon: '▲', color: '#b96cff', fillAlpha: 0.09, token: '8' },
+  { id: 'bermuda-subsea-cables', key: 'subsea-cables', name: 'Subsea Cables', icon: '⌁', color: '#ffcc66', fillAlpha: 0.0, token: '9' },
 ]);
 
 export const BERMUDA_MARINE_LAYER_METADATA = Object.freeze(
@@ -45,11 +46,24 @@ function styleDataSource(dataSource: any, definition: MarineLayerDefinition) {
       entity.polyline.material = new Cesium.ColorMaterialProperty(color.withAlpha(0.9));
       entity.polyline.width = 1.5;
     }
-    if (entity.point) {
+    // GeoJSON Point features default to Cesium's large pin billboard. On a
+    // dense habitat layer that becomes a wall of blue pins on mobile. Hide
+    // the billboard and replace it with a tiny, lightweight point marker.
+    if (entity.billboard) {
+      entity.billboard.show = false;
+    }
+    if (entity.position && !entity.polygon && !entity.polyline) {
+      entity.point = new Cesium.PointGraphics({
+        color,
+        outlineColor: Cesium.Color.BLACK.withAlpha(0.55),
+        outlineWidth: 1,
+        pixelSize: 4,
+      });
+    } else if (entity.point) {
       entity.point.color = color;
-      entity.point.outlineColor = Cesium.Color.BLACK.withAlpha(0.65);
+      entity.point.outlineColor = Cesium.Color.BLACK.withAlpha(0.55);
       entity.point.outlineWidth = 1;
-      entity.point.pixelSize = 6;
+      entity.point.pixelSize = 4;
     }
   }
 }
