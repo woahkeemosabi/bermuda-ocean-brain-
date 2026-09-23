@@ -1,0 +1,27 @@
+:root {
+  --accent: #00d4ff;
+  --accent-dim: rgba(0, 212, 255, 0.15);
+  --accent-glow: rgba(0, 212, 255, 0.4);
+}
+#title-bar .subtitle { letter-spacing: 0.18em; }
+#title-bar h1 { white-space: nowrap; }
+/* Keep the upstream God's Eye visual system dominant. These are only Bermuda-specific overrides. */
+.ocean-brain-status {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 1100;
+  pointer-events: none;
+  font: 10px/1.2 'JetBrains Mono', monospace;
+  letter-spacing: .08em;
+  color: rgba(213,247,255,.72);
+  background: rgba(4,12,17,.62);
+  border: 1px solid rgba(0,212,255,.18);
+  padding: 7px 9px;
+  backdrop-filter: blur(10px);
+}
+@media (max-width: 720px) {
+  #title-bar h1 { font-size: 15px; }
+  #title-bar .subtitle { font-size: 7px; }
+  .ocean-brain-status { font-size: 8px; max-width: 55vw; }
+}
