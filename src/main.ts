@@ -32,6 +32,40 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || '';
 const HAS_3D_CREDENTIALS = Boolean(GOOGLE_MAPS_API_KEY || CESIUM_ION_TOKEN);
 
+type ThreeDRecovery = { tileset: any | null; errorCode: string | null };
+
+function classify3DError(error: unknown) {
+  const message = String((error as any)?.message || error || '').toLowerCase();
+  if (!CESIUM_ION_TOKEN) return 'TOKEN MISSING';
+  if (message.includes('401') || message.includes('403') || message.includes('unauthor') || message.includes('forbidden') || message.includes('token')) return 'AUTH';
+  if (message.includes('404') || message.includes('not found') || message.includes('asset')) return 'ASSET';
+  if (message.includes('fetch') || message.includes('network') || message.includes('cors')) return 'NETWORK';
+  return 'LOAD';
+}
+
+async function recoverPhotorealistic3D(viewer: any): Promise<ThreeDRecovery> {
+  if (!CESIUM_ION_TOKEN) return { tileset: null, errorCode: 'TOKEN MISSING' };
+  try {
+    const resource = await Cesium.IonResource.fromAssetId(2275207, {
+      accessToken: CESIUM_ION_TOKEN,
+    });
+    const tileset = await Cesium.Cesium3DTileset.fromUrl(resource, {
+      cacheBytes: 768 * 1024 * 1024,
+      maximumCacheOverflowBytes: 512 * 1024 * 1024,
+      enableCollision: true,
+      asynchronouslyLoadImagery: true,
+    });
+    viewer.scene.primitives.add(tileset);
+    viewer.scene.globe.show = false;
+    viewer.scene.requestRender();
+    console.info('[Ocean Brain] Google 3D recovery path loaded Cesium ion asset 2275207.');
+    return { tileset, errorCode: null };
+  } catch (error) {
+    console.warn('[Ocean Brain] Google 3D recovery path failed:', error);
+    return { tileset: null, errorCode: classify3DError(error) };
+  }
+}
+
 function applyOceanBrainBrand() {
   document.title = 'Bermuda Ocean Brain';
   const title = document.querySelector<HTMLElement>('#title-bar h1');
@@ -125,13 +159,15 @@ function focusBermuda(viewer: any, duration = 1.15, photoreal3D = HAS_3D_CREDENT
   viewer.camera.flyTo({ ...cameraOptions, duration });
 }
 
-function installMobileExperience(components: any) {
+function installMobileExperience(components: any, mapState: { tileset: any | null; errorCode: string | null }) {
   if (!window.matchMedia('(max-width: 720px)').matches) return null;
 
-  const photoreal3D = Boolean(components.scene.tileset);
+  const photoreal3D = Boolean(mapState.tileset);
   const mapSourceLabel = photoreal3D
     ? (GOOGLE_MAPS_API_KEY ? 'GOOGLE PHOTOREALISTIC 3D' : 'GOOGLE 3D · CESIUM ION')
-    : 'ESRI SATELLITE FALLBACK';
+    : mapState.errorCode
+      ? `3D ERROR · ${mapState.errorCode}`
+      : 'ESRI SATELLITE FALLBACK';
 
   document.documentElement.classList.add('ocean-brain-mobile');
   const shell = document.createElement('div');
@@ -145,7 +181,7 @@ function installMobileExperience(components: any) {
           <span>LIVE MARINE INTELLIGENCE</span>
         </div>
       </div>
-      <div class="ob-mobile-mode">${photoreal3D ? '3D' : 'SAT'}</div>
+      <div class="ob-mobile-mode">${photoreal3D ? '3D' : mapState.errorCode ? '3D!' : 'SAT'}</div>
     </div>
     <button class="ob-sheet-scrim" type="button" aria-label="Close ocean layers"></button>
     <section class="ob-layer-sheet" aria-label="Ocean layers">
@@ -274,9 +310,26 @@ async function start() {
   const viewer = components.scene.viewer;
   const marinePanelObserver = installMarinePanelBranding();
   applyOceanBrainBrand();
-  const photoreal3D = Boolean(components.scene.tileset);
-  configureRenderQuality(viewer, components.scene.tileset);
-  const mobileShell = installMobileExperience(components);
+
+  // The upstream God’s Eye loader intentionally falls back silently when the
+  // ion request fails. Retry asset 2275207 directly so production can both
+  // self-heal and surface a useful failure class instead of only saying SAT.
+  let activeTileset = components.scene.tileset || null;
+  let threeDErrorCode: string | null = null;
+  if (!activeTileset && CESIUM_ION_TOKEN) {
+    const recovery = await recoverPhotorealistic3D(viewer);
+    activeTileset = recovery.tileset;
+    threeDErrorCode = recovery.errorCode;
+  } else if (!activeTileset && !CESIUM_ION_TOKEN) {
+    threeDErrorCode = 'TOKEN MISSING';
+  }
+
+  const photoreal3D = Boolean(activeTileset);
+  configureRenderQuality(viewer, activeTileset);
+  const mobileShell = installMobileExperience(components, {
+    tileset: activeTileset,
+    errorCode: threeDErrorCode,
+  });
 
   focusBermuda(viewer, 0, photoreal3D);
   window.setTimeout(() => focusBermuda(viewer, 0.9, photoreal3D), 500);
@@ -300,7 +353,7 @@ async function start() {
     runtimeStatus.className = 'ocean-brain-status';
     runtimeStatus.textContent = photoreal3D
       ? (GOOGLE_MAPS_API_KEY ? 'GOOGLE PHOTOREALISTIC 3D · ACTIVE' : 'GOOGLE 3D · CESIUM ION · ACTIVE')
-      : 'SATELLITE FALLBACK · 3D UNAVAILABLE';
+      : `SATELLITE FALLBACK · 3D ${threeDErrorCode || 'UNAVAILABLE'}`;
     document.body.appendChild(runtimeStatus);
   }
 
@@ -311,6 +364,12 @@ async function start() {
       dataManager: components.data.dataManager,
       styleManager: components.controls.styleManager,
       marinePanelObserver,
+      mapDiagnostics: {
+        tokenPresent: Boolean(CESIUM_ION_TOKEN),
+        photoreal3D,
+        errorCode: threeDErrorCode,
+        ionAssetId: 2275207,
+      },
       focusBermuda: () => focusBermuda(viewer, 1.15, photoreal3D),
     },
   });
