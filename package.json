@@ -1,7 +1,7 @@
 {
   "name": "bermuda-ocean-brain",
   "private": true,
-  "version": "2.3.0",
+  "version": "2.6.0",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -10,12 +10,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "cesium": "^1.124.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "@vercel/blob": "^2.6.1"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
