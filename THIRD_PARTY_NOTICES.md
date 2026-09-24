@@ -1,17 +1,5 @@
 # Third-party notices
 
-## GeoLibre
+This build uses CesiumJS and public/live geospatial data adapters. Runtime map attribution remains visible in the Cesium credit area.
 
-Bermuda Ocean Brain's layer-stack bridge adapts concepts and implementation patterns from GeoLibre's open-source layer store, Cesium layer synchronization, and identify/selection architecture.
-
-GeoLibre: https://github.com/opengeos/GeoLibre
-
-MIT License
-
-Copyright (c) 2026 Qiusheng Wu
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+The Bermuda marine layers are sourced from the Bermuda Marine Spatial Plan ArcGIS FeatureServer through the project API proxy.

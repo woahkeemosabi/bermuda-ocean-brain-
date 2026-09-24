@@ -1,11 +1,9 @@
 {
   "name": "bermuda-ocean-brain",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type": "module",
-  "engines": {
-    "node": "24.x"
-  },
+  "engines": { "node": "24.x" },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,8 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "cesium": "^1.124.0",
-    "gods-eye-view": "github:bilawalsidhu/gods-eye-view#082074a00684af97458b85529093e2b2a9f28ed1"
+    "cesium": "^1.124.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
