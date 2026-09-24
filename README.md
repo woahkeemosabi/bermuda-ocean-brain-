@@ -16,3 +16,11 @@ Mobile-first Cesium/God's Eye Bermuda mission-control build.
 - Layer toggles never move the camera; only Focus recenters Bermuda.
 
 Exact external photos/registry imagery are intentionally not included.
+
+
+## v12
+Mission Layers panel is now translucent so map changes remain visible while toggling layers. The dimming scrim is reduced and layer cards use glass-style transparency while preserving label contrast.
+
+## v13 — GeoLibre integration pass
+
+This build introduces a GeoLibre-derived active layer stack on top of the existing God's Eye View + Cesium runtime. The stack separates layer visibility from activation, exposes supported per-layer opacity, synchronizes visual ordering into Cesium, and keeps the mission panel translucent so changes can be evaluated in-place. Feature picking continues through the entity intelligence inspector. See `THIRD_PARTY_NOTICES.md` for GeoLibre attribution.

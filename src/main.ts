@@ -14,6 +14,7 @@ import {
   BERMUDA_MARINE_LAYER_METADATA,
   createBermudaMarineLayers,
 } from './oceanBrainMarineLayers';
+import { GeoLibreLayerStack, type GeoLibreStackEntry } from './geolibreStack';
 
 const BERMUDA = { latitude: 32.3078, longitude: -64.7505 };
 const DEFAULT_VISIBLE_GODS_EYE_LAYERS = new Set<string>();
@@ -212,6 +213,9 @@ type CustomLayerController = {
   enable: () => Promise<LiveFeedStatus>;
   disable: () => Promise<void>;
   getStatus: () => LiveFeedStatus;
+  setVisible?: (visible: boolean) => void | Promise<void>;
+  setOpacity?: (opacity: number) => void | Promise<void>;
+  raiseToTop?: () => void | Promise<void>;
 };
 
 function layerImageryCollection(viewer: any, tileset: any) {
@@ -569,6 +573,8 @@ function createAircraftController(viewer: any): CustomLayerController {
   return {
     async enable() { enabled = true; status = { state: 'loading', text: 'SCANNING AIRSPACE…' }; return refresh(); },
     async disable() { enabled = false; clearTimer(); remove(); status = { state: 'off', text: 'Regional live air traffic' }; viewer.scene.requestRender?.(); },
+    setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
+    raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
     getStatus: () => status,
   };
 }
@@ -659,6 +665,8 @@ function createVesselController(viewer: any): CustomLayerController {
   return {
     async enable() { enabled = true; status = { state: 'loading', text: 'CONNECTING AIS…' }; return refresh(); },
     async disable() { enabled = false; clearTimer(); remove(); status = { state: 'off', text: 'AIS vessel traffic' }; viewer.scene.requestRender?.(); },
+    setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
+    raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
     getStatus: () => status,
   };
 }
@@ -728,6 +736,8 @@ function createCycloneController(viewer: any): CustomLayerController {
       status = { state: 'off', text: 'Atlantic tropical systems' };
       viewer.scene.requestRender?.();
     },
+    setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
+    raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
     getStatus: () => status,
   };
 }
@@ -783,6 +793,9 @@ function createRadarController(viewer: any, tileset: any): CustomLayerController
       status = { state: 'off', text: 'Precipitation radar' };
       viewer.scene.requestRender?.();
     },
+    setVisible(visible: boolean) { if (layer) layer.show = visible; viewer.scene.requestRender?.(); },
+    setOpacity(opacity: number) { if (layer) layer.alpha = Math.max(0.05, Math.min(1, opacity)); viewer.scene.requestRender?.(); },
+    raiseToTop() { if (layer && collection?.contains?.(layer)) collection.raiseToTop?.(layer); viewer.scene.requestRender?.(); },
     getStatus: () => status,
   };
 }
@@ -850,6 +863,9 @@ function createWmsController(
       status = { state: 'off', text: kind === 'clouds' ? 'Satellite cloud field' : 'Lightning activity' };
       viewer.scene.requestRender?.();
     },
+    setVisible(visible: boolean) { if (layer) layer.show = visible; viewer.scene.requestRender?.(); },
+    setOpacity(opacity: number) { if (layer) layer.alpha = Math.max(0.05, Math.min(1, opacity)); viewer.scene.requestRender?.(); },
+    raiseToTop() { if (layer && collection?.contains?.(layer)) collection.raiseToTop?.(layer); viewer.scene.requestRender?.(); },
     getStatus: () => status,
   };
 }
@@ -920,6 +936,8 @@ function createWindController(viewer: any): CustomLayerController {
       status = { state: 'off', text: 'Atmospheric flow' };
       viewer.scene.requestRender?.();
     },
+    setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
+    raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
     getStatus: () => status,
   };
 }
@@ -1075,6 +1093,11 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
         <div class="ob-layer-grid">${renderLayerButtons(OCEAN_LAYER_DEFINITIONS)}</div>
       </div>
 
+      <div class="ob-layer-section ob-geolibre-stack-section">
+        <div class="ob-section-label"><span>ACTIVE LAYER STACK</span><em>GEOLIBRE</em></div>
+        <div class="ob-geolibre-stack"><div class="ob-stack-empty">Activate a layer to manage visibility, opacity and order.</div></div>
+      </div>
+
       <div class="ob-sheet-footer">
         <span>${mapSourceLabel}</span>
         <span class="ob-active-count">0 ACTIVE</span>
@@ -1141,9 +1164,72 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
   const viewer = components.scene.viewer;
   const dataManager = components.data.dataManager;
   const customLiveControllers = createCustomLiveControllers(viewer, mapState.tileset);
+  const geoLibreStack = new GeoLibreLayerStack();
+  for (const definition of MOBILE_LAYER_DEFINITIONS) {
+    const custom = customLiveControllers.get(definition.id);
+    const nativeModule = dataManager?.layers?.get?.(definition.id)?.module;
+    geoLibreStack.register({
+      id: definition.id,
+      title: definition.label,
+      category: definition.category,
+      color: definition.color,
+      supportsOpacity: Boolean(custom?.setOpacity || nativeModule?.setOpacity),
+      setVisible: (visible: boolean) => custom?.setVisible?.(visible) ?? nativeModule?.setVisible?.(visible),
+      setOpacity: (opacity: number) => custom?.setOpacity?.(opacity) ?? nativeModule?.setOpacity?.(opacity),
+      raiseToTop: () => custom?.raiseToTop?.() ?? nativeModule?.raiseToTop?.(),
+    });
+  }
   const entityInspectorHandler = installEntityInspector(viewer, shell);
   const layerButtons = Array.from(shell.querySelectorAll<HTMLButtonElement>('.ob-layer-toggle'));
   void entityInspectorHandler;
+  const stackRoot = shell.querySelector<HTMLElement>('.ob-geolibre-stack');
+  const renderGeoLibreStack = (entries: readonly GeoLibreStackEntry[]) => {
+    if (!stackRoot) return;
+    const active = entries.filter((entry) => entry.active);
+    if (!active.length) {
+      stackRoot.innerHTML = '<div class="ob-stack-empty">Activate a layer to manage visibility, opacity and order.</div>';
+      return;
+    }
+    stackRoot.innerHTML = active.map((entry, index) => `
+      <div class="ob-stack-row" data-stack-id="${entry.id}" style="--stack-color:${entry.color}">
+        <button class="ob-stack-eye" type="button" data-visible="${entry.visible}" aria-label="${entry.visible ? 'Hide' : 'Show'} ${entry.title}">${entry.visible ? '◉' : '○'}</button>
+        <div class="ob-stack-copy"><strong>${entry.title}</strong><small>${entry.category === 'live' ? 'LIVE SIGNAL' : 'OCEAN INTELLIGENCE'} · ${entry.visible ? 'VISIBLE' : 'HIDDEN'}</small></div>
+        <div class="ob-stack-opacity ${entry.supportsOpacity ? '' : 'disabled'}">
+          <input type="range" min="5" max="100" step="1" value="${Math.round(entry.opacity * 100)}" ${entry.supportsOpacity ? '' : 'disabled'} aria-label="${entry.title} opacity"/>
+          <b>${entry.supportsOpacity ? `${Math.round(entry.opacity * 100)}%` : '—'}</b>
+        </div>
+        <div class="ob-stack-order">
+          <button type="button" data-move="-1" ${index === 0 ? 'disabled' : ''} aria-label="Move ${entry.title} up">↑</button>
+          <button type="button" data-move="1" ${index === active.length - 1 ? 'disabled' : ''} aria-label="Move ${entry.title} down">↓</button>
+        </div>
+      </div>`).join('');
+
+    stackRoot.querySelectorAll<HTMLElement>('.ob-stack-row').forEach((row) => {
+      const id = row.dataset.stackId;
+      if (!id) return;
+      row.querySelector<HTMLButtonElement>('.ob-stack-eye')?.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const entry = geoLibreStack.snapshot().find((item) => item.id === id);
+        if (!entry) return;
+        await geoLibreStack.setVisible(id, !entry.visible);
+      });
+      const slider = row.querySelector<HTMLInputElement>('input[type="range"]');
+      slider?.addEventListener('input', () => {
+        const pct = Number(slider.value);
+        const label = row.querySelector<HTMLElement>('.ob-stack-opacity b');
+        if (label) label.textContent = `${Math.round(pct)}%`;
+        void geoLibreStack.setOpacity(id, pct / 100);
+      });
+      row.querySelectorAll<HTMLButtonElement>('[data-move]').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          await geoLibreStack.move(id, Number(button.dataset.move) as -1 | 1);
+        });
+      });
+    });
+  };
+  geoLibreStack.subscribe(renderGeoLibreStack);
+
   const updateActiveCount = () => {
     const count = layerButtons.filter((button) => button.dataset.active === 'true').length;
     shell.querySelectorAll<HTMLElement>('.ob-active-count').forEach((element) => { element.textContent = `${count} ACTIVE`; });
@@ -1213,6 +1299,8 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
           if (changed === false) throw new Error(`${id} lifecycle rejected`);
         }
         button.dataset.active = String(next);
+        await geoLibreStack.setActive(id, next);
+        if (next) await geoLibreStack.syncRenderOrder();
         button.removeAttribute('data-error');
         if (!next) setLayerButtonStatus(button, { state: 'off', text: definition?.subtitle || '' });
         else if (definition?.category === 'live')
@@ -1223,6 +1311,7 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
         // the dedicated Focus control is the only automatic Bermuda recenter action.
       } catch (error) {
         button.dataset.active = 'false';
+        await geoLibreStack.setActive(id, false);
         button.dataset.error = 'true';
         if (custom) await custom.disable().catch(() => {});
         setLayerButtonStatus(button, { state: 'error', text: shortFeedError(error), error: String(error) });
@@ -1249,6 +1338,7 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
       const definition = MOBILE_LAYER_DEFINITIONS.find((layer) => layer.id === button.dataset.layerId);
       setLayerButtonStatus(button, { state: 'off', text: definition?.subtitle || '' });
     });
+    await Promise.all(MOBILE_LAYER_DEFINITIONS.map((layer) => geoLibreStack.setActive(layer.id, false)));
     updateActiveCount();
   });
 

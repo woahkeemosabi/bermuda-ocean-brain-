@@ -866,3 +866,159 @@
     letter-spacing: .12em;
   }
 }
+
+/* v12 — transparent mission-layer HUD: keep the map readable while tuning layers */
+@media (max-width: 720px) {
+  .ocean-brain-mobile .ob-mobile-shell.layers-open .ob-sheet-scrim {
+    background: rgba(0, 5, 10, .07);
+    backdrop-filter: blur(.35px);
+    -webkit-backdrop-filter: blur(.35px);
+  }
+
+  .ocean-brain-mobile .ob-layer-sheet {
+    background:
+      radial-gradient(circle at 78% 0%, rgba(45, 116, 255, .10), transparent 38%),
+      linear-gradient(180deg, rgba(3, 14, 21, .76), rgba(2, 10, 16, .66));
+    backdrop-filter: blur(13px) saturate(125%);
+    -webkit-backdrop-filter: blur(13px) saturate(125%);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, .34),
+      inset 0 1px 0 rgba(255,255,255,.035);
+    border-color: rgba(112, 232, 255, .24);
+  }
+
+  .ocean-brain-mobile .ob-layer-sheet .ob-layer-toggle {
+    background: rgba(3, 16, 23, .26);
+  }
+
+  .ocean-brain-mobile .ob-layer-sheet .ob-layer-toggle[data-active='true'] {
+    background: rgba(5, 24, 31, .48);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.02),
+      0 0 18px rgba(0, 0, 0, .11);
+  }
+
+  .ocean-brain-mobile .ob-layer-sheet .ob-section-label,
+  .ocean-brain-mobile .ob-layer-sheet .ob-sheet-heading,
+  .ocean-brain-mobile .ob-layer-sheet .ob-sheet-footer {
+    text-shadow: 0 1px 8px rgba(0,0,0,.9);
+  }
+}
+
+/* GeoLibre-derived active layer stack: visibility, opacity and ordering are
+   independent controls, synced into the Cesium scene. */
+.ob-geolibre-stack-section {
+  border-top: 1px solid rgba(130, 224, 255, 0.12);
+  margin-top: 8px;
+  padding-top: 10px;
+}
+
+.ob-geolibre-stack {
+  display: grid;
+  gap: 7px;
+  margin-top: 7px;
+}
+
+.ob-stack-empty {
+  padding: 10px 11px;
+  border: 1px dashed rgba(142, 222, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(3, 12, 19, 0.24);
+  color: rgba(222, 244, 255, 0.56);
+  font: 600 9px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .06em;
+}
+
+.ob-stack-row {
+  display: grid;
+  grid-template-columns: 30px minmax(90px, 1fr) minmax(98px, 1.1fr) 52px;
+  align-items: center;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--stack-color) 26%, rgba(120, 210, 255, .14));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--stack-color) 8%, rgba(4, 16, 25, .56)), rgba(3, 13, 20, .38));
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+}
+
+.ob-stack-eye,
+.ob-stack-order button {
+  border: 1px solid rgba(159, 226, 255, .14);
+  background: rgba(2, 10, 16, .38);
+  color: var(--stack-color);
+  border-radius: 8px;
+  min-height: 28px;
+  font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ob-stack-eye[data-visible="false"] {
+  color: rgba(218, 239, 250, .42);
+}
+
+.ob-stack-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ob-stack-copy strong {
+  color: #ecfaff;
+  font: 700 10px/1.15 ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ob-stack-copy small {
+  color: rgba(211, 239, 252, .48);
+  font: 600 7px/1.15 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .06em;
+}
+
+.ob-stack-opacity {
+  display: grid;
+  grid-template-columns: minmax(52px, 1fr) 33px;
+  align-items: center;
+  gap: 5px;
+}
+
+.ob-stack-opacity input {
+  width: 100%;
+  accent-color: var(--stack-color);
+}
+
+.ob-stack-opacity b {
+  color: rgba(232, 248, 255, .8);
+  text-align: right;
+  font: 700 8px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ob-stack-opacity.disabled {
+  opacity: .35;
+}
+
+.ob-stack-order {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.ob-stack-order button {
+  min-width: 0;
+  padding: 0;
+  color: rgba(219, 242, 252, .78);
+}
+
+.ob-stack-order button:disabled {
+  opacity: .22;
+}
+
+@media (max-width: 430px) {
+  .ob-stack-row {
+    grid-template-columns: 28px minmax(82px, 1fr) minmax(84px, .95fr) 46px;
+    gap: 5px;
+    padding: 7px;
+  }
+}

@@ -134,7 +134,7 @@ function configureClustering(dataSource: any, definition: MarineLayerDefinition)
     cluster.billboard.image = icon;
     cluster.billboard.width = 28;
     cluster.billboard.height = 28;
-    cluster.billboard.color = Cesium.Color.WHITE.withAlpha(0.94);
+    cluster.billboard.color = Cesium.Color.WHITE.withAlpha(0.94 * Number(dataSource.__oceanBrainOpacity ?? 1));
     cluster.label.show = true;
     cluster.label.text = String(entities.length);
     cluster.label.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
@@ -143,7 +143,7 @@ function configureClustering(dataSource: any, definition: MarineLayerDefinition)
     cluster.label.outlineWidth = 3;
     cluster.label.pixelOffset = new Cesium.Cartesian2(13, -13);
     cluster.label.showBackground = true;
-    cluster.label.backgroundColor = color.withAlpha(0.75);
+    cluster.label.backgroundColor = color.withAlpha(0.75 * Number(dataSource.__oceanBrainOpacity ?? 1));
   });
 }
 
@@ -214,6 +214,36 @@ function styleDataSource(dataSource: any, definition: MarineLayerDefinition) {
   }
 }
 
+
+function applyDataSourceOpacity(dataSource: any, definition: MarineLayerDefinition, opacity: number) {
+  if (!dataSource) return;
+  const alpha = Math.max(0.05, Math.min(1, opacity));
+  dataSource.__oceanBrainOpacity = alpha;
+  const baseColor = Cesium.Color.fromCssColorString(definition.color);
+  for (const entity of dataSource.entities.values) {
+    const props = propertiesOf(entity);
+    const name = featureName(props, definition);
+    const color = variantColor(baseColor, name === definition.name ? '' : name);
+    try {
+      if (entity.polygon) {
+        entity.polygon.material = new Cesium.ColorMaterialProperty(color.withAlpha(definition.fillAlpha * alpha));
+        entity.polygon.outlineColor = color.withAlpha(0.98 * alpha);
+      }
+      if (entity.polyline) {
+        entity.polyline.material = definition.key === 'subsea-cables'
+          ? new Cesium.PolylineGlowMaterialProperty({ color: color.withAlpha(0.96 * alpha), glowPower: 0.22, taperPower: 0.6 })
+          : new Cesium.ColorMaterialProperty(color.withAlpha(0.98 * alpha));
+      }
+      if (entity.billboard) entity.billboard.color = Cesium.Color.WHITE.withAlpha((definition.clusterPoints ? 0.82 : 0.96) * alpha);
+      if (entity.label) {
+        entity.label.fillColor = Cesium.Color.WHITE.withAlpha(alpha);
+        entity.label.outlineColor = Cesium.Color.BLACK.withAlpha(0.95 * alpha);
+        entity.label.backgroundColor = color.withAlpha(0.7 * alpha);
+      }
+    } catch {}
+  }
+}
+
 function createMarineLayer(definition: MarineLayerDefinition) {
   let viewer: any = null;
   let dataSource: any = null;
@@ -222,6 +252,7 @@ function createMarineLayer(definition: MarineLayerDefinition) {
   let count = 0;
   let lastUpdate: number | null = null;
   let lastError: string | null = null;
+  let opacity = 1;
 
   return {
     id: definition.id,
@@ -237,6 +268,11 @@ function createMarineLayer(definition: MarineLayerDefinition) {
     },
     enable() { enabled = true; if (dataSource) dataSource.show = true; return true; },
     disable() { enabled = false; generation += 1; if (dataSource) dataSource.show = false; return true; },
+    setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer?.scene?.requestRender?.(); return true; },
+    setOpacity(nextOpacity: number) { opacity = Math.max(0.05, Math.min(1, Number(nextOpacity) || 1)); applyDataSourceOpacity(dataSource, definition, opacity); viewer?.scene?.requestRender?.(); return opacity; },
+    getOpacity() { return opacity; },
+    getRenderHandle() { return dataSource; },
+    raiseToTop() { if (viewer && dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer?.scene?.requestRender?.(); },
     async update() {
       if (!viewer || !enabled) return false;
       const requestGeneration = ++generation;
@@ -248,6 +284,7 @@ function createMarineLayer(definition: MarineLayerDefinition) {
         const nextSource = await Cesium.GeoJsonDataSource.load(geojson, { clampToGround: true });
         if (!enabled || requestGeneration !== generation) { nextSource.destroy?.(); return false; }
         styleDataSource(nextSource, definition);
+        applyDataSourceOpacity(nextSource, definition, opacity);
         nextSource.show = true;
         viewer.dataSources.add(nextSource);
         if (dataSource) viewer.dataSources.remove(dataSource, true);
@@ -264,7 +301,7 @@ function createMarineLayer(definition: MarineLayerDefinition) {
     destroy() {
       enabled = false; generation += 1;
       if (viewer && dataSource) viewer.dataSources.remove(dataSource, true);
-      dataSource = null; viewer = null; count = 0; lastUpdate = null; lastError = null;
+      dataSource = null; viewer = null; count = 0; lastUpdate = null; lastError = null; opacity = 1;
     },
     getStats() { return { count, lastUpdate, error: lastError }; },
   };
