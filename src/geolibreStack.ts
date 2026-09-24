@@ -17,6 +17,7 @@ export type GeoLibreStackAdapter = {
   setVisible?: (visible: boolean) => void | Promise<void>;
   setOpacity?: (opacity: number) => void | Promise<void>;
   raiseToTop?: () => void | Promise<void>;
+  setStyleStrength?: (strength: number) => void | Promise<void>;
 };
 
 export type GeoLibreStackEntry = {
@@ -28,6 +29,8 @@ export type GeoLibreStackEntry = {
   visible: boolean;
   opacity: number;
   supportsOpacity: boolean;
+  supportsStyle: boolean;
+  styleStrength: number;
 };
 
 type Listener = (entries: readonly GeoLibreStackEntry[]) => void;
@@ -50,6 +53,8 @@ export class GeoLibreLayerStack {
         visible: true,
         opacity: 1,
         supportsOpacity: adapter.supportsOpacity !== false && typeof adapter.setOpacity === 'function',
+        supportsStyle: typeof adapter.setStyleStrength === 'function',
+        styleStrength: 1,
       });
       this.order.push(adapter.id);
     }
@@ -96,6 +101,15 @@ export class GeoLibreLayerStack {
     const next = Math.max(0.05, Math.min(1, Number(opacity) || 1));
     entry.opacity = next;
     await adapter.setOpacity?.(next);
+    this.emit();
+  }
+
+  async cycleStyle(id: string) {
+    const entry = this.entries.get(id);
+    const adapter = this.adapters.get(id);
+    if (!entry || !adapter || !entry.supportsStyle) return;
+    entry.styleStrength = entry.styleStrength >= 2 ? 0 : entry.styleStrength + 1;
+    await adapter.setStyleStrength?.(entry.styleStrength);
     this.emit();
   }
 

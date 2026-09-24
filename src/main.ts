@@ -31,6 +31,7 @@ type MobileLayerDefinition = {
   label: string;
   glyph: string;
   category: LayerCategory;
+  group: 'traffic' | 'weather' | 'habitat' | 'bathymetry' | 'jurisdiction' | 'infrastructure';
   color: string;
   subtitle: string;
   camera?: CameraPreset;
@@ -43,24 +44,24 @@ type TelemetryPayload = {
 };
 
 const LIVE_LAYER_DEFINITIONS: readonly MobileLayerDefinition[] = Object.freeze([
-  { id: 'vessels', label: 'Ships', glyph: '◆', category: 'live', color: '#4fffc0', subtitle: 'AIS vessel traffic' },
-  { id: 'flights', label: 'Aircraft', glyph: '✈', category: 'live', color: '#ffbd66', subtitle: 'Regional live air traffic' },
-  { id: 'wind', label: 'Wind', glyph: '≈', category: 'live', color: '#66b9ff', subtitle: 'Atmospheric flow' },
-  { id: 'weather-radar', label: 'Radar', glyph: '◌', category: 'live', color: '#4fe0ff', subtitle: 'Precipitation radar' },
-  { id: 'weather-satellite', label: 'Clouds', glyph: '☁', category: 'live', color: '#c1d4ff', subtitle: 'Satellite cloud field' },
-  { id: 'weather-lightning', label: 'Lightning', glyph: 'ϟ', category: 'live', color: '#ffe66a', subtitle: 'Lightning activity' },
-  { id: 'weather-cyclones', label: 'Cyclones', glyph: '⊙', category: 'live', color: '#ff7f9d', subtitle: 'Atlantic tropical systems' },
+  { id: 'vessels', label: 'Ships', glyph: '◆', category: 'live', group: 'traffic', color: '#4fffc0', subtitle: 'AIS vessel traffic' },
+  { id: 'flights', label: 'Aircraft', glyph: '✈', category: 'live', group: 'traffic', color: '#ffbd66', subtitle: 'Regional live air traffic' },
+  { id: 'wind', label: 'Wind', glyph: '≈', category: 'live', group: 'weather', color: '#66b9ff', subtitle: 'Atmospheric flow' },
+  { id: 'weather-radar', label: 'Radar', glyph: '◌', category: 'live', group: 'weather', color: '#4fe0ff', subtitle: 'Precipitation radar' },
+  { id: 'weather-satellite', label: 'Clouds', glyph: '☁', category: 'live', group: 'weather', color: '#c1d4ff', subtitle: 'Satellite cloud field' },
+  { id: 'weather-lightning', label: 'Lightning', glyph: 'ϟ', category: 'live', group: 'weather', color: '#ffe66a', subtitle: 'Lightning activity' },
+  { id: 'weather-cyclones', label: 'Cyclones', glyph: '⊙', category: 'live', group: 'weather', color: '#ff7f9d', subtitle: 'Atlantic tropical systems' },
 ]);
 
 const OCEAN_LAYER_DEFINITIONS: readonly MobileLayerDefinition[] = Object.freeze([
-  { id: 'bermuda-territorial-seas', label: 'Territorial Sea', glyph: '◎', category: 'ocean', color: '#35e6ff', subtitle: '12 NM sovereign boundary', camera: { ...BERMUDA, height: 145_000 } },
-  { id: 'bermuda-coral-reef-type', label: 'Coral Reef', glyph: '✦', category: 'ocean', color: '#22f2d2', subtitle: 'Reef habitat classification' },
-  { id: 'bermuda-seagrass', label: 'Seagrass', glyph: '≋', category: 'ocean', color: '#5cff9a', subtitle: 'Seagrass observations' },
-  { id: 'bermuda-shelf', label: 'Bermuda Shelf', glyph: '▱', category: 'ocean', color: '#37b8ff', subtitle: 'Shallow platform', camera: { ...BERMUDA, height: 130_000 } },
-  { id: 'bermuda-slope', label: 'Slope', glyph: '◢', category: 'ocean', color: '#586cff', subtitle: 'Shelf break + slope', camera: { ...BERMUDA, height: 185_000 } },
-  { id: 'bermuda-seamounts', label: 'Seamounts', glyph: '▲', category: 'ocean', color: '#cf70ff', subtitle: 'Regional seamount field', camera: { ...BERMUDA, height: 650_000 } },
-  { id: 'bermuda-eez', label: 'EEZ', glyph: '◉', category: 'ocean', color: '#786dff', subtitle: 'Exclusive Economic Zone', camera: { ...BERMUDA, height: 640_000 } },
-  { id: 'bermuda-subsea-cables', label: 'Subsea Cables', glyph: '⌁', category: 'ocean', color: '#ffca5c', subtitle: 'Submarine cable routes', camera: { ...BERMUDA, height: 230_000 } },
+  { id: 'bermuda-coral-reef-type', label: 'Coral Reef', glyph: '✦', category: 'ocean', group: 'habitat', color: '#22f2d2', subtitle: 'Reef habitat classification' },
+  { id: 'bermuda-seagrass', label: 'Seagrass', glyph: '≋', category: 'ocean', group: 'habitat', color: '#5cff9a', subtitle: 'Seagrass observations' },
+  { id: 'bermuda-shelf', label: 'Bermuda Shelf', glyph: '▱', category: 'ocean', group: 'bathymetry', color: '#37b8ff', subtitle: 'Shallow platform', camera: { ...BERMUDA, height: 130_000 } },
+  { id: 'bermuda-slope', label: 'Slope', glyph: '◢', category: 'ocean', group: 'bathymetry', color: '#586cff', subtitle: 'Shelf break + slope', camera: { ...BERMUDA, height: 185_000 } },
+  { id: 'bermuda-seamounts', label: 'Seamounts', glyph: '▲', category: 'ocean', group: 'bathymetry', color: '#cf70ff', subtitle: 'Regional seamount field', camera: { ...BERMUDA, height: 650_000 } },
+  { id: 'bermuda-territorial-seas', label: 'Territorial Sea', glyph: '◎', category: 'ocean', group: 'jurisdiction', color: '#35e6ff', subtitle: '12 NM sovereign boundary', camera: { ...BERMUDA, height: 145_000 } },
+  { id: 'bermuda-eez', label: 'EEZ', glyph: '◉', category: 'ocean', group: 'jurisdiction', color: '#786dff', subtitle: 'Exclusive Economic Zone', camera: { ...BERMUDA, height: 640_000 } },
+  { id: 'bermuda-subsea-cables', label: 'Subsea Cables', glyph: '⌁', category: 'ocean', group: 'infrastructure', color: '#ffca5c', subtitle: 'Submarine cable routes', camera: { ...BERMUDA, height: 230_000 } },
 ]);
 
 const MOBILE_LAYER_DEFINITIONS: readonly MobileLayerDefinition[] = Object.freeze([
@@ -205,6 +206,22 @@ function renderLayerButtons(definitions: readonly MobileLayerDefinition[]) {
   `).join('');
 }
 
+function renderLayerGroup(title: string, subtitle: string, definitions: readonly MobileLayerDefinition[]) {
+  return `<div class="ob-mini-layer-group"><div class="ob-mini-group-title"><span>${title}</span><em>${subtitle}</em></div><div class="ob-layer-grid">${renderLayerButtons(definitions)}</div></div>`;
+}
+
+function renderGroupedMissionLayers() {
+  const group = (id: MobileLayerDefinition['group']) => MOBILE_LAYER_DEFINITIONS.filter((layer) => layer.group === id);
+  return [
+    renderLayerGroup('TRAFFIC', 'LIVE', group('traffic')),
+    renderLayerGroup('WEATHER', 'LIVE', group('weather')),
+    renderLayerGroup('HABITATS', 'BDA MSP', group('habitat')),
+    renderLayerGroup('BATHYMETRY', 'BDA MSP', group('bathymetry')),
+    renderLayerGroup('JURISDICTION', 'BDA MSP', group('jurisdiction')),
+    renderLayerGroup('INFRASTRUCTURE', 'BDA MSP', group('infrastructure')),
+  ].join('');
+}
+
 
 
 type LiveFeedState = 'off' | 'loading' | 'live' | 'empty' | 'error';
@@ -216,6 +233,8 @@ type CustomLayerController = {
   setVisible?: (visible: boolean) => void | Promise<void>;
   setOpacity?: (opacity: number) => void | Promise<void>;
   raiseToTop?: () => void | Promise<void>;
+  setFilter?: (filter: string) => void | Promise<void>;
+  setTimeOffset?: (offset: number) => void | Promise<void>;
 };
 
 function layerImageryCollection(viewer: any, tileset: any) {
@@ -414,57 +433,95 @@ function oceanIntelFromEntity(entity: any): EntityIntel | null {
   return { kind: 'ocean', title: String(title), className: layerName.toUpperCase(), accent: definition?.color || '#35e6ff', rows };
 }
 
+function entityIntelFromEntity(entity: any): EntityIntel | null {
+  const props = entityProperties(entity);
+  const kind = String(props.oceanBrainKind || '');
+  if (kind === 'aircraft') {
+    const rows: Array<[string,string]> = [
+      ['TYPE', compactValue(props.model || props.typeCode || props.className)],
+      ['REG', compactValue(props.registration)],
+      ['ALT', compactValue(props.altitudeFt ? `${Math.round(Number(props.altitudeFt)).toLocaleString()} FT` : '')],
+      ['SPEED', compactValue(props.speedKt ? `${Math.round(Number(props.speedKt))} KT` : '')],
+      ['HEADING', compactValue(props.headingDeg !== '' ? `${Math.round(Number(props.headingDeg))}°` : '')],
+      ['OPERATOR', compactValue(props.operator)],
+    ].filter((row) => row[1]) as Array<[string,string]>;
+    return { kind: 'aircraft', title: String(props.callsign || props.registration || 'AIRCRAFT'), className: String(props.className || 'AIRCRAFT'), accent: '#ffbd66', rows };
+  }
+  if (kind === 'vessel') {
+    const rows: Array<[string,string]> = [
+      ['TYPE', compactValue(props.className)],
+      ['MMSI', compactValue(props.mmsi)],
+      ['LENGTH', compactValue(props.lengthM ? `${Number(props.lengthM).toFixed(0)} M` : '')],
+      ['SPEED', compactValue(props.speedKt ? `${Number(props.speedKt).toFixed(1)} KT` : '')],
+      ['HEADING', compactValue(props.headingDeg !== '' ? `${Math.round(Number(props.headingDeg))}°` : '')],
+      ['DESTINATION', compactValue(props.destination)],
+    ].filter((row) => row[1]) as Array<[string,string]>;
+    return { kind: 'vessel', title: String(props.name || props.mmsi || 'VESSEL'), className: String(props.className || 'VESSEL'), accent: '#4fffc0', rows };
+  }
+  return oceanIntelFromEntity(entity);
+}
+
 function installEntityInspector(viewer: any, shell: HTMLElement) {
   const panel = shell.querySelector<HTMLElement>('.ob-entity-inspector');
   if (!panel) return null;
   const close = () => shell.classList.remove('entity-open');
   shell.querySelector<HTMLButtonElement>('.ob-entity-close')?.addEventListener('click', close);
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-  handler.setInputAction((movement: any) => {
-    const picked = viewer.scene.pick(movement.position);
-    const entity = picked?.id;
-    if (!entity) return;
-    const props = entityProperties(entity);
-    let intel: EntityIntel | null = null;
-    const kind = String(props.oceanBrainKind || '');
-    if (kind === 'aircraft') {
-      const rows: Array<[string,string]> = [
-        ['TYPE', compactValue(props.model || props.typeCode || props.className)],
-        ['REG', compactValue(props.registration)],
-        ['ALT', compactValue(props.altitudeFt ? `${Math.round(Number(props.altitudeFt)).toLocaleString()} FT` : '')],
-        ['SPEED', compactValue(props.speedKt ? `${Math.round(Number(props.speedKt))} KT` : '')],
-        ['HEADING', compactValue(props.headingDeg !== '' ? `${Math.round(Number(props.headingDeg))}°` : '')],
-        ['OPERATOR', compactValue(props.operator)],
-      ].filter((row) => row[1]) as Array<[string,string]>;
-      intel = { kind: 'aircraft', title: String(props.callsign || props.registration || 'AIRCRAFT'), className: String(props.className || 'AIRCRAFT'), accent: '#ffbd66', rows };
-    } else if (kind === 'vessel') {
-      const rows: Array<[string,string]> = [
-        ['TYPE', compactValue(props.className)],
-        ['MMSI', compactValue(props.mmsi)],
-        ['LENGTH', compactValue(props.lengthM ? `${Number(props.lengthM).toFixed(0)} M` : '')],
-        ['SPEED', compactValue(props.speedKt ? `${Number(props.speedKt).toFixed(1)} KT` : '')],
-        ['HEADING', compactValue(props.headingDeg !== '' ? `${Math.round(Number(props.headingDeg))}°` : '')],
-        ['DESTINATION', compactValue(props.destination)],
-      ].filter((row) => row[1]) as Array<[string,string]>;
-      intel = { kind: 'vessel', title: String(props.name || props.mmsi || 'VESSEL'), className: String(props.className || 'VESSEL'), accent: '#4fffc0', rows };
-    } else {
-      intel = oceanIntelFromEntity(entity);
-    }
-    if (!intel) return;
+
+  const renderIntel = (intel: EntityIntel, entity?: any, index = 0, total = 1) => {
+    const props = entity ? entityProperties(entity) : {};
     panel.style.setProperty('--entity-accent', intel.accent);
     const title = panel.querySelector<HTMLElement>('.ob-entity-title');
     const cls = panel.querySelector<HTMLElement>('.ob-entity-class');
     const grid = panel.querySelector<HTMLElement>('.ob-entity-grid');
     const icon = panel.querySelector<HTMLImageElement>('.ob-entity-icon img');
+    const counter = panel.querySelector<HTMLElement>('.ob-identify-counter');
     if (title) title.textContent = intel.title.toUpperCase();
     if (cls) cls.textContent = intel.className;
+    if (counter) counter.textContent = total > 1 ? `${index + 1} / ${total} FEATURES` : 'IDENTIFIED FEATURE';
     if (grid) grid.innerHTML = intel.rows.length
       ? intel.rows.map(([key, value]) => `<span><small>${key}</small><b>${String(value).replace(/[<>]/g, '')}</b></span>`).join('')
       : '<span><small>INTELLIGENCE</small><b>FEATURE IDENTIFIED</b></span>';
     if (icon) {
+      const kind = String(props.oceanBrainKind || '');
       const iconKind = kind === 'aircraft' ? String(props.iconKind || 'airliner') : kind === 'vessel' ? String(props.iconKind || 'vessel') : String(props.oceanBrainIconKind || 'ocean');
       icon.src = svgDataUrl(iconKind, intel.accent);
     }
+  };
+
+  handler.setInputAction((movement: any) => {
+    if (shell.dataset.mapTool && shell.dataset.mapTool !== 'identify') return;
+    const picks = viewer.scene.drillPick(movement.position, 24) || [];
+    const found: Array<{entity:any; intel:EntityIntel}> = [];
+    const seen = new Set<any>();
+    for (const pick of picks) {
+      const entity = pick?.id;
+      if (!entity || seen.has(entity)) continue;
+      const intel = entityIntelFromEntity(entity);
+      if (!intel) continue;
+      seen.add(entity);
+      found.push({ entity, intel });
+      if (found.length >= 12) break;
+    }
+    if (!found.length) return;
+
+    let selected = 0;
+    const switcher = panel.querySelector<HTMLElement>('.ob-identify-switcher');
+    const refreshSwitcher = () => {
+      if (!switcher) return;
+      switcher.innerHTML = found.map(({ intel }, index) => `<button type="button" data-i="${index}" class="${index === selected ? 'active' : ''}" style="--pick-color:${intel.accent}">${intel.className.slice(0, 18)}</button>`).join('');
+      switcher.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+        button.addEventListener('click', () => {
+          selected = Number(button.dataset.i || 0);
+          const item = found[selected];
+          renderIntel(item.intel, item.entity, selected, found.length);
+          refreshSwitcher();
+        });
+      });
+    };
+
+    renderIntel(found[0].intel, found[0].entity, 0, found.length);
+    refreshSwitcher();
     shell.classList.remove('layers-open', 'intel-open', 'entity-open');
     shell.classList.add('entity-open');
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -475,11 +532,29 @@ function createAircraftController(viewer: any): CustomLayerController {
   let dataSource: any = null;
   let timer: number | null = null;
   let enabled = false;
+  let filter = 'all';
   let status: LiveFeedStatus = { state: 'off', text: 'Regional live air traffic' };
 
   const clearTimer = () => { if (timer !== null) window.clearTimeout(timer); timer = null; };
   const remove = () => { if (dataSource) viewer.dataSources.remove(dataSource, true); dataSource = null; };
   const schedule = () => { clearTimer(); if (enabled) timer = window.setTimeout(() => { void refresh(); }, 20_000); };
+  const applyFilter = () => {
+    if (!dataSource) return;
+    const visibleTargets = new Set<string>();
+    for (const entity of dataSource.entities.values) {
+      const props = entityProperties(entity);
+      if (String(props.oceanBrainKind || '') !== 'aircraft') continue;
+      const key = String(props.iconKind || 'airliner');
+      const show = filter === 'all' || key === filter;
+      entity.show = show;
+      if (show) visibleTargets.add(String(entity.id));
+    }
+    for (const entity of dataSource.entities.values) {
+      if (!String(entity.id).endsWith(':vector')) continue;
+      entity.show = visibleTargets.has(String(entity.id).replace(/:vector$/, ''));
+    }
+    viewer.scene.requestRender?.();
+  };
   const refresh = async (): Promise<LiveFeedStatus> => {
     if (!enabled) return status;
     try {
@@ -561,7 +636,7 @@ function createAircraftController(viewer: any): CustomLayerController {
         count++;
       }
 
-      remove(); dataSource = source; await viewer.dataSources.add(source);
+      remove(); dataSource = source; await viewer.dataSources.add(source); applyFilter();
       status = count > 0 ? { state: 'live', text: `${count} AIRCRAFT · ${sourceName}`, count } : { state: 'empty', text: '0 AIRCRAFT · REGIONAL', count: 0 };
       viewer.scene.requestRender?.();
     } catch (error) {
@@ -575,6 +650,7 @@ function createAircraftController(viewer: any): CustomLayerController {
     async disable() { enabled = false; clearTimer(); remove(); status = { state: 'off', text: 'Regional live air traffic' }; viewer.scene.requestRender?.(); },
     setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
     raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
+    setFilter(next: string) { filter = next || 'all'; applyFilter(); },
     getStatus: () => status,
   };
 }
@@ -583,10 +659,29 @@ function createVesselController(viewer: any): CustomLayerController {
   let dataSource: any = null;
   let timer: number | null = null;
   let enabled = false;
+  let filter = 'all';
   let status: LiveFeedStatus = { state: 'off', text: 'AIS vessel traffic' };
   const clearTimer = () => { if (timer !== null) window.clearTimeout(timer); timer = null; };
   const remove = () => { if (dataSource) viewer.dataSources.remove(dataSource, true); dataSource = null; };
   const schedule = () => { clearTimer(); if (enabled) timer = window.setTimeout(() => { void refresh(); }, 18_000); };
+  const applyFilter = () => {
+    if (!dataSource) return;
+    const visibleTargets = new Set<string>();
+    for (const entity of dataSource.entities.values) {
+      const props = entityProperties(entity);
+      if (String(props.oceanBrainKind || '') !== 'vessel') continue;
+      const key = String(props.iconKind || 'vessel');
+      const yachtGroup = ['yacht','megayacht','sailboat'].includes(key);
+      const show = filter === 'all' || key === filter || (filter === 'yachts' && yachtGroup);
+      entity.show = show;
+      if (show) visibleTargets.add(String(entity.id));
+    }
+    for (const entity of dataSource.entities.values) {
+      if (!String(entity.id).endsWith(':vector')) continue;
+      entity.show = visibleTargets.has(String(entity.id).replace(/:vector$/, ''));
+    }
+    viewer.scene.requestRender?.();
+  };
   const refresh = async (): Promise<LiveFeedStatus> => {
     if (!enabled) return status;
     try {
@@ -655,7 +750,7 @@ function createVesselController(viewer: any): CustomLayerController {
         }
         count++;
       }
-      remove(); dataSource = source; await viewer.dataSources.add(source);
+      remove(); dataSource = source; await viewer.dataSources.add(source); applyFilter();
       status = count > 0 ? { state: 'live', text: `${count} VESSEL${count === 1 ? '' : 'S'} · AIS`, count } : transport === 'connecting' || payload?.refreshing ? { state: 'loading', text: 'AIS CONNECTING…', count: 0 } : { state: 'empty', text: '0 VESSELS · AIS', count: 0 };
       viewer.scene.requestRender?.();
     } catch (error) { status = { state: 'error', text: shortFeedError(error), error: String(error) }; }
@@ -667,6 +762,7 @@ function createVesselController(viewer: any): CustomLayerController {
     async disable() { enabled = false; clearTimer(); remove(); status = { state: 'off', text: 'AIS vessel traffic' }; viewer.scene.requestRender?.(); },
     setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
     raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
+    setFilter(next: string) { filter = next || 'all'; applyFilter(); },
     getStatus: () => status,
   };
 }
@@ -744,12 +840,45 @@ function createCycloneController(viewer: any): CustomLayerController {
 
 function createRadarController(viewer: any, tileset: any): CustomLayerController {
   let layer: any = null;
+  let manifest: any = null;
+  let timeOffset = 0;
   let status: LiveFeedStatus = { state: 'off', text: 'Precipitation radar' };
   const collection = layerImageryCollection(viewer, tileset);
   const remove = () => {
     if (layer && collection?.contains?.(layer)) collection.remove(layer, true);
     else if (layer && !layer.isDestroyed?.()) layer.destroy?.();
     layer = null;
+  };
+  const renderFrame = () => {
+    if (!manifest?.host) return;
+    const frames = Array.isArray(manifest.frames) && manifest.frames.length ? manifest.frames : [{ path: manifest.path, time: manifest.time }];
+    const index = Math.max(0, Math.min(frames.length - 1, frames.length - 1 - Math.max(0, timeOffset)));
+    const frame = frames[index];
+    if (!frame?.path || !frame?.time) return;
+    const oldAlpha = layer?.alpha ?? 0.62;
+    const oldShow = layer?.show ?? true;
+    remove();
+    const provider = new Cesium.UrlTemplateImageryProvider({
+      url: `${manifest.host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
+      tilingScheme: new Cesium.WebMercatorTilingScheme(),
+      rectangle: Cesium.Rectangle.fromDegrees(-72, 24, -56, 42),
+      tileWidth: 256,
+      tileHeight: 256,
+      maximumLevel: 7,
+      enablePickFeatures: false,
+      credit: new Cesium.Credit('Weather radar · RainViewer', false),
+    });
+    provider.errorEvent?.addEventListener?.((event: any) => {
+      status = { state: 'error', text: shortFeedError(event?.error || event) };
+    });
+    layer = new Cesium.ImageryLayer(provider, { alpha: oldAlpha, show: oldShow });
+    layer.brightness = 1.08;
+    layer.contrast = 1.18;
+    layer.saturation = 1.12;
+    collection.add(layer);
+    const stamp = new Date(frame.time).toISOString().slice(11, 16) + 'Z';
+    status = { state: 'live', text: `${timeOffset ? `RADAR -${timeOffset * 10}M` : 'RADAR LIVE'} · ${stamp}` };
+    viewer.scene.requestRender?.();
   };
   return {
     async enable() {
@@ -758,29 +887,9 @@ function createRadarController(viewer: any, tileset: any): CustomLayerController
       try {
         const response = await fetch('/api/radar-manifest', { cache: 'no-store', headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error(`Radar HTTP ${response.status}`);
-        const manifest = await response.json();
+        manifest = await response.json();
         if (!manifest?.host || !manifest?.path || !manifest?.time) throw new Error('Radar manifest unavailable');
-        const provider = new Cesium.UrlTemplateImageryProvider({
-          url: `${manifest.host}${manifest.path}/256/{z}/{x}/{y}/2/1_1.png`,
-          tilingScheme: new Cesium.WebMercatorTilingScheme(),
-          rectangle: Cesium.Rectangle.fromDegrees(-72, 24, -56, 42),
-          tileWidth: 256,
-          tileHeight: 256,
-          maximumLevel: 7,
-          enablePickFeatures: false,
-          credit: new Cesium.Credit('Weather radar · RainViewer', false),
-        });
-        provider.errorEvent?.addEventListener?.((event: any) => {
-          status = { state: 'error', text: shortFeedError(event?.error || event) };
-        });
-        layer = new Cesium.ImageryLayer(provider, { alpha: 0.62, show: true });
-        layer.brightness = 1.08;
-        layer.contrast = 1.18;
-        layer.saturation = 1.12;
-        collection.add(layer);
-        const stamp = new Date(manifest.time).toISOString().slice(11, 16) + 'Z';
-        status = { state: 'live', text: `RADAR LIVE · ${stamp}` };
-        viewer.scene.requestRender?.();
+        renderFrame();
         return status;
       } catch (error) {
         remove();
@@ -790,12 +899,15 @@ function createRadarController(viewer: any, tileset: any): CustomLayerController
     },
     async disable() {
       remove();
+      manifest = null;
+      timeOffset = 0;
       status = { state: 'off', text: 'Precipitation radar' };
       viewer.scene.requestRender?.();
     },
     setVisible(visible: boolean) { if (layer) layer.show = visible; viewer.scene.requestRender?.(); },
     setOpacity(opacity: number) { if (layer) layer.alpha = Math.max(0.05, Math.min(1, opacity)); viewer.scene.requestRender?.(); },
     raiseToTop() { if (layer && collection?.contains?.(layer)) collection.raiseToTop?.(layer); viewer.scene.requestRender?.(); },
+    setTimeOffset(offset: number) { timeOffset = Math.max(0, Math.min(7, Math.round(Number(offset) || 0))); if (manifest) renderFrame(); },
     getStatus: () => status,
   };
 }
@@ -1083,19 +1195,41 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
         <button class="ob-sheet-close" type="button" aria-label="Close">×</button>
       </div>
 
-      <div class="ob-layer-section">
-        <div class="ob-section-label"><span>LIVE SIGNALS</span><em>REAL-TIME</em></div>
-        <div class="ob-layer-grid ob-layer-grid-live">${renderLayerButtons(LIVE_LAYER_DEFINITIONS)}</div>
+      <div class="ob-layer-section ob-grouped-layers">
+        <div class="ob-section-label"><span>SPATIAL DATA</span><em>LIVE + GIS</em></div>
+        ${renderGroupedMissionLayers()}
       </div>
 
-      <div class="ob-layer-section">
-        <div class="ob-section-label"><span>OCEAN INTELLIGENCE</span><em>BDA MSP</em></div>
-        <div class="ob-layer-grid">${renderLayerButtons(OCEAN_LAYER_DEFINITIONS)}</div>
+      <div class="ob-layer-section ob-geolibre-tools-section">
+        <div class="ob-section-label"><span>MAP TOOLS</span><em>GEOLIBRE CORE</em></div>
+        <div class="ob-tool-row">
+          <button type="button" class="ob-map-tool" data-tool="identify">IDENTIFY</button>
+          <button type="button" class="ob-map-tool" data-tool="measure">MEASURE</button>
+          <button type="button" class="ob-map-tool" data-tool="range">5 NM RING</button>
+          <button type="button" class="ob-map-tool" data-tool="clear">CLEAR</button>
+        </div>
+        <div class="ob-tool-status">Tap any visible feature to identify across all layers.</div>
+        <div class="ob-quick-filters">
+          <label><span>AIRCRAFT</span><select data-entity-filter="flights"><option value="all">ALL</option><option value="airliner">AIRLINER</option><option value="cargo">CARGO</option><option value="bizjet">BUSINESS JET</option><option value="prop">PROP</option><option value="helicopter">HELICOPTER</option></select></label>
+          <label><span>VESSELS</span><select data-entity-filter="vessels"><option value="all">ALL</option><option value="yachts">YACHTS / SAIL</option><option value="cargoShip">CARGO</option><option value="tanker">TANKER</option><option value="fishing">FISHING</option><option value="tug">TUG</option><option value="ferry">PASSENGER</option></select></label>
+          <label><span>RADAR TIME</span><select data-radar-time><option value="0">NOW</option><option value="1">-10 MIN</option><option value="2">-20 MIN</option><option value="3">-30 MIN</option><option value="4">-40 MIN</option></select></label>
+        </div>
       </div>
 
       <div class="ob-layer-section ob-geolibre-stack-section">
         <div class="ob-section-label"><span>ACTIVE LAYER STACK</span><em>GEOLIBRE</em></div>
         <div class="ob-geolibre-stack"><div class="ob-stack-empty">Activate a layer to manage visibility, opacity and order.</div></div>
+      </div>
+
+      <div class="ob-layer-section ob-legend-section">
+        <div class="ob-section-label"><span>LEGEND</span><em>AUTO</em></div>
+        <div class="ob-live-legend"><span class="ob-stack-empty">Activate layers to build legend.</span></div>
+      </div>
+
+      <div class="ob-layer-section ob-attribute-preview" hidden>
+        <div class="ob-section-label"><span class="ob-attribute-title">ATTRIBUTE TABLE</span><button type="button" class="ob-attribute-close">CLOSE</button></div>
+        <div class="ob-attribute-summary"></div>
+        <div class="ob-attribute-scroll"><table><thead></thead><tbody></tbody></table></div>
       </div>
 
       <div class="ob-sheet-footer">
@@ -1146,6 +1280,17 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
       </div>
     </section>
 
+    <section class="ob-entity-inspector" aria-label="Feature intelligence">
+      <div class="ob-sheet-handle"></div>
+      <div class="ob-entity-head">
+        <div class="ob-entity-icon"><img alt="" /></div>
+        <div class="ob-entity-head-copy"><span class="ob-entity-class">TARGET</span><strong class="ob-entity-title">ENTITY</strong><small class="ob-identify-counter">IDENTIFIED FEATURE</small></div>
+        <button class="ob-entity-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="ob-identify-switcher"></div>
+      <div class="ob-entity-grid"></div>
+    </section>
+
     <nav class="ob-mobile-dock" aria-label="Ocean Brain controls">
       <button class="ob-dock-button ob-layers-button" type="button">
         <span class="ob-dock-icon">≋</span><span>Layers</span>
@@ -1177,18 +1322,50 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
       setVisible: (visible: boolean) => custom?.setVisible?.(visible) ?? nativeModule?.setVisible?.(visible),
       setOpacity: (opacity: number) => custom?.setOpacity?.(opacity) ?? nativeModule?.setOpacity?.(opacity),
       raiseToTop: () => custom?.raiseToTop?.() ?? nativeModule?.raiseToTop?.(),
+      setStyleStrength: nativeModule?.setStyleStrength ? (strength: number) => nativeModule.setStyleStrength(strength) : undefined,
     });
   }
   const entityInspectorHandler = installEntityInspector(viewer, shell);
   const layerButtons = Array.from(shell.querySelectorAll<HTMLButtonElement>('.ob-layer-toggle'));
   void entityInspectorHandler;
   const stackRoot = shell.querySelector<HTMLElement>('.ob-geolibre-stack');
+  const attributePanel = shell.querySelector<HTMLElement>('.ob-attribute-preview');
+  shell.querySelector<HTMLButtonElement>('.ob-attribute-close')?.addEventListener('click', () => { if (attributePanel) attributePanel.hidden = true; });
+  const openAttributePreview = (id: string, title: string) => {
+    if (!attributePanel) return;
+    const module = dataManager?.layers?.get?.(id)?.module;
+    const source = module?.getRenderHandle?.();
+    const entities = Array.isArray(source?.entities?.values) ? source.entities.values : [];
+    const rows = entities.slice(0, 30).map((entity: any) => entityProperties(entity)).filter((props: any) => Object.keys(props).length);
+    const ignored = new Set(['oceanBrainLayerId','oceanBrainLayerName','oceanBrainIconKind']);
+    const fieldCounts = new Map<string, number>();
+    for (const row of rows) for (const [key, value] of Object.entries(row)) if (!ignored.has(key) && compactValue(value)) fieldCounts.set(key, (fieldCounts.get(key) || 0) + 1);
+    const fields = Array.from(fieldCounts.entries()).sort((a,b) => b[1]-a[1]).slice(0, 4).map(([key]) => key);
+    const stats = module?.getStats?.() || {};
+    const titleNode = attributePanel.querySelector<HTMLElement>('.ob-attribute-title');
+    const summary = attributePanel.querySelector<HTMLElement>('.ob-attribute-summary');
+    const thead = attributePanel.querySelector<HTMLElement>('thead');
+    const tbody = attributePanel.querySelector<HTMLElement>('tbody');
+    if (titleNode) titleNode.textContent = `${title.toUpperCase()} · ATTRIBUTES`;
+    if (summary) summary.textContent = `${Number(stats.count || entities.length).toLocaleString()} FEATURES · SHOWING ${Math.min(rows.length, 30)} SAMPLE RECORDS`;
+    if (thead) thead.innerHTML = `<tr>${fields.map((field) => `<th>${field.replace(/_/g,' ').toUpperCase()}</th>`).join('')}</tr>`;
+    if (tbody) tbody.innerHTML = rows.slice(0, 12).map((row: any) => `<tr>${fields.map((field) => `<td>${compactValue(row[field]).replace(/[<>]/g,'')}</td>`).join('')}</tr>`).join('') || '<tr><td>NO ATTRIBUTES AVAILABLE</td></tr>';
+    attributePanel.hidden = false;
+  };
   const renderGeoLibreStack = (entries: readonly GeoLibreStackEntry[]) => {
     if (!stackRoot) return;
     const active = entries.filter((entry) => entry.active);
+    const legendRoot = shell.querySelector<HTMLElement>('.ob-live-legend');
     if (!active.length) {
       stackRoot.innerHTML = '<div class="ob-stack-empty">Activate a layer to manage visibility, opacity and order.</div>';
+      if (legendRoot) legendRoot.innerHTML = '<span class="ob-stack-empty">Activate layers to build legend.</span>';
       return;
+    }
+    if (legendRoot) {
+      legendRoot.innerHTML = active.filter((entry) => entry.visible).map((entry) => {
+        const def = MOBILE_LAYER_DEFINITIONS.find((layer) => layer.id === entry.id);
+        return `<span class="ob-legend-item"><i style="--legend-color:${entry.color}"></i><b>${def?.glyph || '•'}</b><em>${entry.title}</em></span>`;
+      }).join('') || '<span class="ob-stack-empty">All active layers are hidden.</span>';
     }
     stackRoot.innerHTML = active.map((entry, index) => `
       <div class="ob-stack-row" data-stack-id="${entry.id}" style="--stack-color:${entry.color}">
@@ -1198,9 +1375,13 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
           <input type="range" min="5" max="100" step="1" value="${Math.round(entry.opacity * 100)}" ${entry.supportsOpacity ? '' : 'disabled'} aria-label="${entry.title} opacity"/>
           <b>${entry.supportsOpacity ? `${Math.round(entry.opacity * 100)}%` : '—'}</b>
         </div>
-        <div class="ob-stack-order">
-          <button type="button" data-move="-1" ${index === 0 ? 'disabled' : ''} aria-label="Move ${entry.title} up">↑</button>
-          <button type="button" data-move="1" ${index === active.length - 1 ? 'disabled' : ''} aria-label="Move ${entry.title} down">↓</button>
+        <div class="ob-stack-actions">
+          ${entry.category === 'ocean' ? `<button type="button" class="ob-stack-data" aria-label="Inspect ${entry.title} attributes">DATA</button>` : ''}
+          ${entry.supportsStyle ? `<button type="button" class="ob-stack-style" aria-label="Cycle ${entry.title} style">${entry.styleStrength === 0 ? 'SOFT' : entry.styleStrength === 2 ? 'BOLD' : 'STD'}</button>` : ''}
+          <div class="ob-stack-order">
+            <button type="button" data-move="-1" ${index === 0 ? 'disabled' : ''} aria-label="Move ${entry.title} up">↑</button>
+            <button type="button" data-move="1" ${index === active.length - 1 ? 'disabled' : ''} aria-label="Move ${entry.title} down">↓</button>
+          </div>
         </div>
       </div>`).join('');
 
@@ -1219,6 +1400,15 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
         const label = row.querySelector<HTMLElement>('.ob-stack-opacity b');
         if (label) label.textContent = `${Math.round(pct)}%`;
         void geoLibreStack.setOpacity(id, pct / 100);
+      });
+      row.querySelector<HTMLButtonElement>('.ob-stack-data')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const entry = geoLibreStack.snapshot().find((item) => item.id === id);
+        if (entry) openAttributePreview(id, entry.title);
+      });
+      row.querySelector<HTMLButtonElement>('.ob-stack-style')?.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await geoLibreStack.cycleStyle(id);
       });
       row.querySelectorAll<HTMLButtonElement>('[data-move]').forEach((button) => {
         button.addEventListener('click', async (event) => {
@@ -1259,6 +1449,137 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
   shell.querySelectorAll<HTMLButtonElement>('.ob-center-button').forEach((button) => {
     button.addEventListener('click', () => focusBermuda(viewer, 0.9, photoreal3D));
   });
+
+  // Lightweight GeoLibre-style spatial tools: identify, measure and range ring.
+  const analysisSource = new Cesium.CustomDataSource('ocean-brain-analysis');
+  void viewer.dataSources.add(analysisSource);
+  let activeTool: 'identify' | 'measure' | 'range' = 'identify';
+  let measureStart: Cesium.Cartographic | null = null;
+  const toolStatus = shell.querySelector<HTMLElement>('.ob-tool-status');
+  const toolButtons = Array.from(shell.querySelectorAll<HTMLButtonElement>('.ob-map-tool'));
+  const setTool = (tool: 'identify' | 'measure' | 'range') => {
+    activeTool = tool;
+    shell.dataset.mapTool = tool;
+    measureStart = null;
+    toolButtons.forEach((button) => button.classList.toggle('active', button.dataset.tool === tool));
+    if (toolStatus) toolStatus.textContent = tool === 'measure'
+      ? 'Tap two points to measure geodesic distance.'
+      : tool === 'range'
+        ? 'Tap map to place a 5 NM analysis ring.'
+        : 'Tap any visible feature to identify across all layers.';
+  };
+  setTool('identify');
+  shell.querySelectorAll<HTMLSelectElement>('[data-entity-filter]').forEach((select) => {
+    select.addEventListener('change', () => {
+      const id = select.dataset.entityFilter;
+      if (!id) return;
+      void customLiveControllers.get(id)?.setFilter?.(select.value);
+    });
+  });
+  shell.querySelector<HTMLSelectElement>('[data-radar-time]')?.addEventListener('change', (event) => {
+    const select = event.currentTarget as HTMLSelectElement;
+    void customLiveControllers.get('weather-radar')?.setTimeOffset?.(Number(select.value));
+  });
+  toolButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const tool = button.dataset.tool;
+      if (tool === 'clear') {
+        analysisSource.entities.removeAll();
+        measureStart = null;
+        if (toolStatus) toolStatus.textContent = 'Analysis graphics cleared.';
+        viewer.scene.requestRender?.();
+        return;
+      }
+      if (tool === 'identify' || tool === 'measure' || tool === 'range') setTool(tool);
+    });
+  });
+  const analysisHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  analysisHandler.setInputAction((movement: any) => {
+    if (activeTool === 'identify') return;
+    const cartesian = viewer.scene.pickPositionSupported ? viewer.scene.pickPosition(movement.position) : null;
+    const fallback = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe?.ellipsoid || Cesium.Ellipsoid.WGS84);
+    const point = cartesian || fallback;
+    if (!point) return;
+    const cartographic = Cesium.Cartographic.fromCartesian(point);
+    const lon = Cesium.Math.toDegrees(cartographic.longitude);
+    const lat = Cesium.Math.toDegrees(cartographic.latitude);
+    if (activeTool === 'range') {
+      analysisSource.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(lon, lat, 20),
+        ellipse: {
+          semiMajorAxis: 9260,
+          semiMinorAxis: 9260,
+          material: Cesium.Color.fromCssColorString('#4fe0ff').withAlpha(0.06),
+          outline: true,
+          outlineColor: Cesium.Color.fromCssColorString('#4fe0ff').withAlpha(0.95),
+          outlineWidth: 3,
+          height: 20,
+        },
+        label: {
+          text: '5 NM RANGE',
+          font: '700 11px ui-monospace, SFMono-Regular, Menlo, monospace',
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          pixelOffset: new Cesium.Cartesian2(0, -18),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+      });
+      let nearby = 0;
+      const centerCarto = Cesium.Cartographic.fromDegrees(lon, lat);
+      const now = Cesium.JulianDate.now();
+      for (const ds of viewer.dataSources?._dataSources || []) {
+        for (const candidate of ds?.entities?.values || []) {
+          try {
+            const pos = candidate.position?.getValue?.(now);
+            if (!pos) continue;
+            const props = entityProperties(candidate);
+            if (!props.oceanBrainKind && !props.oceanBrainLayerId) continue;
+            const targetCarto = Cesium.Cartographic.fromCartesian(pos);
+            const distance = new Cesium.EllipsoidGeodesic(centerCarto, targetCarto).surfaceDistance || Infinity;
+            if (distance <= 9260) nearby++;
+          } catch {}
+        }
+      }
+      if (toolStatus) toolStatus.textContent = `5 NM buffer · ${nearby} nearby mapped features / targets`;
+      viewer.scene.requestRender?.();
+      return;
+    }
+    if (!measureStart) {
+      measureStart = cartographic;
+      if (toolStatus) toolStatus.textContent = 'First point set. Tap the second point.';
+      return;
+    }
+    const geodesic = new Cesium.EllipsoidGeodesic(measureStart, cartographic);
+    const metres = geodesic.surfaceDistance || 0;
+    const nm = metres / 1852;
+    const startLon = Cesium.Math.toDegrees(measureStart.longitude);
+    const startLat = Cesium.Math.toDegrees(measureStart.latitude);
+    analysisSource.entities.add({
+      polyline: {
+        positions: [Cesium.Cartesian3.fromDegrees(startLon, startLat, 40), Cesium.Cartesian3.fromDegrees(lon, lat, 40)],
+        width: 3,
+        material: Cesium.Color.fromCssColorString('#ffe66a').withAlpha(0.95),
+        clampToGround: true,
+      },
+      position: Cesium.Cartesian3.fromDegrees((startLon + lon) / 2, (startLat + lat) / 2, 80),
+      label: {
+        text: `${nm.toFixed(2)} NM · ${(metres / 1000).toFixed(2)} KM`,
+        font: '700 11px ui-monospace, SFMono-Regular, Menlo, monospace',
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 3,
+        showBackground: true,
+        backgroundColor: Cesium.Color.fromCssColorString('#111925').withAlpha(0.82),
+        pixelOffset: new Cesium.Cartesian2(0, -12),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
+    if (toolStatus) toolStatus.textContent = `Distance ${nm.toFixed(2)} NM · ${(metres / 1000).toFixed(2)} KM`;
+    measureStart = null;
+    viewer.scene.requestRender?.();
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  void analysisHandler;
 
   const refreshLayerButtonStates = () => {
     for (const definition of LIVE_LAYER_DEFINITIONS) {

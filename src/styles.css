@@ -1022,3 +1022,102 @@
     padding: 7px;
   }
 }
+
+/* v14 — compact GeoLibre capability pass: grouped stack, identify-all, filters, legend, spatial tools */
+@media (max-width: 720px) {
+  .ob-grouped-layers { display: grid; gap: 10px; }
+  .ob-mini-layer-group { display: grid; gap: 6px; }
+  .ob-mini-group-title {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 0 2px;
+    color: rgba(226,248,253,.56);
+    font: 700 6.8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .12em;
+  }
+  .ob-mini-group-title em { color: rgba(111,217,255,.46); font-style: normal; font-size: 5.8px; }
+  .ob-mini-layer-group .ob-layer-grid { margin-top: 0; }
+
+  .ob-geolibre-tools-section,
+  .ob-legend-section { border-top: 1px solid rgba(130,224,255,.1); padding-top: 10px; margin-top: 8px; }
+  .ob-tool-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 6px; }
+  .ob-map-tool {
+    min-height: 32px; border-radius: 9px;
+    border: 1px solid rgba(136,220,255,.13);
+    background: rgba(2,13,20,.34);
+    color: rgba(224,245,252,.66);
+    font: 700 6.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .08em;
+  }
+  .ob-map-tool.active { color: #dffcff; border-color: rgba(79,224,255,.55); background: rgba(18,85,105,.22); box-shadow: inset 0 0 18px rgba(79,224,255,.06); }
+  .ob-tool-status { margin-top: 7px; color: rgba(213,241,250,.48); font: 600 7px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .ob-quick-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin-top: 8px; }
+  .ob-quick-filters label { display: grid; gap: 4px; min-width: 0; }
+  .ob-quick-filters span { color: rgba(201,234,244,.40); font: 650 5.7px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+  .ob-quick-filters select {
+    width: 100%; min-width: 0; height: 29px; border-radius: 8px;
+    border: 1px solid rgba(137,214,243,.13); background: rgba(2,12,18,.62); color: rgba(230,247,252,.76);
+    font: 650 6.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0 5px;
+  }
+
+  .ob-live-legend { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ob-legend-item {
+    display: inline-grid; grid-template-columns: 7px 12px auto; align-items: center; gap: 4px;
+    min-height: 24px; padding: 4px 7px; border-radius: 8px;
+    border: 1px solid rgba(136,214,243,.11); background: rgba(3,13,20,.28);
+  }
+  .ob-legend-item i { width: 7px; height: 7px; border-radius: 50%; background: var(--legend-color); box-shadow: 0 0 8px var(--legend-color); }
+  .ob-legend-item b { color: var(--legend-color); font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .ob-legend-item em { color: rgba(225,245,251,.63); font: 650 6.6px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-style: normal; }
+
+  .ob-stack-actions { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .ob-stack-style {
+    border: 1px solid rgba(159,226,255,.14); background: rgba(2,10,16,.38); color: var(--stack-color);
+    border-radius: 7px; min-height: 21px; font: 700 5.7px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em;
+  }
+
+  .ob-entity-head {
+    display: grid; grid-template-columns: 54px minmax(0,1fr) 40px; gap: 12px; align-items: center;
+  }
+  .ob-entity-head-copy { min-width: 0; display: grid; gap: 2px; }
+  .ob-identify-counter { color: rgba(210,239,247,.42); font: 650 6.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; }
+  .ob-identify-switcher { display: flex; gap: 5px; overflow-x: auto; margin-top: 10px; padding-bottom: 2px; scrollbar-width: none; }
+  .ob-identify-switcher::-webkit-scrollbar { display: none; }
+  .ob-identify-switcher button {
+    flex: 0 0 auto; border-radius: 8px; border: 1px solid color-mix(in srgb,var(--pick-color) 28%,rgba(150,220,245,.10));
+    background: rgba(3,15,22,.54); color: rgba(224,246,252,.56); padding: 6px 8px;
+    font: 700 6px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em;
+  }
+  .ob-identify-switcher button.active { color: #f3fcff; border-color: var(--pick-color); box-shadow: inset 0 0 12px color-mix(in srgb,var(--pick-color) 8%,transparent); }
+}
+
+@media (max-width: 720px) {
+  .ob-stack-data,
+  .ob-attribute-close {
+    border: 1px solid rgba(159,226,255,.14);
+    background: rgba(2,10,16,.38);
+    color: rgba(221,245,252,.72);
+    border-radius: 7px;
+    min-height: 21px;
+    font: 700 5.7px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .06em;
+  }
+  .ob-attribute-preview {
+    border-top: 1px solid rgba(130,224,255,.1);
+    padding-top: 10px;
+    margin-top: 8px;
+  }
+  .ob-attribute-preview[hidden] { display: none !important; }
+  .ob-attribute-preview .ob-section-label { align-items: center; }
+  .ob-attribute-summary {
+    margin: 6px 0 7px;
+    color: rgba(210,239,247,.48);
+    font: 650 6.5px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .07em;
+  }
+  .ob-attribute-scroll { overflow-x: auto; border: 1px solid rgba(139,215,242,.1); border-radius: 10px; background: rgba(2,12,18,.25); }
+  .ob-attribute-scroll table { width: 100%; min-width: 360px; border-collapse: collapse; }
+  .ob-attribute-scroll th,
+  .ob-attribute-scroll td { padding: 7px 8px; border-bottom: 1px solid rgba(138,214,240,.07); text-align: left; white-space: nowrap; }
+  .ob-attribute-scroll th { color: rgba(124,221,255,.68); font: 700 6px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+  .ob-attribute-scroll td { color: rgba(225,245,251,.65); font: 600 6.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+}

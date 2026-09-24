@@ -124,8 +124,8 @@ function entityAnchor(entity: any) {
 function configureClustering(dataSource: any, definition: MarineLayerDefinition) {
   if (!definition.clusterPoints) return;
   dataSource.clustering.enabled = true;
-  dataSource.clustering.pixelRange = 28;
-  dataSource.clustering.minimumClusterSize = 4;
+  dataSource.clustering.pixelRange = 58;
+  dataSource.clustering.minimumClusterSize = 6;
   const color = Cesium.Color.fromCssColorString(definition.color);
   const icon = oceanIconDataUrl(iconKind(definition), definition.color);
   dataSource.clustering.clusterEvent.addEventListener((entities: any[], cluster: any) => {
@@ -190,8 +190,7 @@ function styleDataSource(dataSource: any, definition: MarineLayerDefinition) {
 
     const anchor = entityAnchor(entity);
     const shouldLabel = Boolean(anchor) && labelBudget > 0 && (
-      definition.key === 'seamounts' || definition.key === 'subsea-cables' ||
-      ['eez','territorial-seas','shelf','slope'].includes(definition.key) || name !== definition.name
+      definition.key === 'seamounts' || definition.key === 'subsea-cables' || name !== definition.name
     );
     if (shouldLabel) {
       entity.position = anchor;
@@ -215,10 +214,18 @@ function styleDataSource(dataSource: any, definition: MarineLayerDefinition) {
 }
 
 
-function applyDataSourceOpacity(dataSource: any, definition: MarineLayerDefinition, opacity: number) {
+function styleStrengthFactors(strength: number) {
+  if (strength <= 0) return { fill: 0.45, line: 0.72, symbol: 0.78 };
+  if (strength >= 2) return { fill: 1.55, line: 1.35, symbol: 1.18 };
+  return { fill: 1, line: 1, symbol: 1 };
+}
+
+function applyDataSourceOpacity(dataSource: any, definition: MarineLayerDefinition, opacity: number, styleStrength = 1) {
   if (!dataSource) return;
   const alpha = Math.max(0.05, Math.min(1, opacity));
+  const factors = styleStrengthFactors(styleStrength);
   dataSource.__oceanBrainOpacity = alpha;
+  dataSource.__oceanBrainStyleStrength = styleStrength;
   const baseColor = Cesium.Color.fromCssColorString(definition.color);
   for (const entity of dataSource.entities.values) {
     const props = propertiesOf(entity);
@@ -226,15 +233,22 @@ function applyDataSourceOpacity(dataSource: any, definition: MarineLayerDefiniti
     const color = variantColor(baseColor, name === definition.name ? '' : name);
     try {
       if (entity.polygon) {
-        entity.polygon.material = new Cesium.ColorMaterialProperty(color.withAlpha(definition.fillAlpha * alpha));
+        entity.polygon.material = new Cesium.ColorMaterialProperty(color.withAlpha(Math.min(0.72, definition.fillAlpha * factors.fill) * alpha));
         entity.polygon.outlineColor = color.withAlpha(0.98 * alpha);
+        entity.polygon.outlineWidth = Math.max(1, definition.lineWidth * factors.line);
       }
       if (entity.polyline) {
         entity.polyline.material = definition.key === 'subsea-cables'
           ? new Cesium.PolylineGlowMaterialProperty({ color: color.withAlpha(0.96 * alpha), glowPower: 0.22, taperPower: 0.6 })
           : new Cesium.ColorMaterialProperty(color.withAlpha(0.98 * alpha));
+        entity.polyline.width = (definition.key === 'subsea-cables' ? 4.6 : definition.lineWidth) * factors.line;
       }
-      if (entity.billboard) entity.billboard.color = Cesium.Color.WHITE.withAlpha((definition.clusterPoints ? 0.82 : 0.96) * alpha);
+      if (entity.billboard) {
+        entity.billboard.color = Cesium.Color.WHITE.withAlpha((definition.clusterPoints ? 0.82 : 0.96) * alpha);
+        const baseSize = definition.key === 'seamounts' ? 30 : 20;
+        entity.billboard.width = baseSize * factors.symbol;
+        entity.billboard.height = baseSize * factors.symbol;
+      }
       if (entity.label) {
         entity.label.fillColor = Cesium.Color.WHITE.withAlpha(alpha);
         entity.label.outlineColor = Cesium.Color.BLACK.withAlpha(0.95 * alpha);
@@ -253,6 +267,7 @@ function createMarineLayer(definition: MarineLayerDefinition) {
   let lastUpdate: number | null = null;
   let lastError: string | null = null;
   let opacity = 1;
+  let styleStrength = 1;
 
   return {
     id: definition.id,
@@ -269,8 +284,10 @@ function createMarineLayer(definition: MarineLayerDefinition) {
     enable() { enabled = true; if (dataSource) dataSource.show = true; return true; },
     disable() { enabled = false; generation += 1; if (dataSource) dataSource.show = false; return true; },
     setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer?.scene?.requestRender?.(); return true; },
-    setOpacity(nextOpacity: number) { opacity = Math.max(0.05, Math.min(1, Number(nextOpacity) || 1)); applyDataSourceOpacity(dataSource, definition, opacity); viewer?.scene?.requestRender?.(); return opacity; },
+    setOpacity(nextOpacity: number) { opacity = Math.max(0.05, Math.min(1, Number(nextOpacity) || 1)); applyDataSourceOpacity(dataSource, definition, opacity, styleStrength); viewer?.scene?.requestRender?.(); return opacity; },
     getOpacity() { return opacity; },
+    setStyleStrength(nextStrength: number) { styleStrength = Math.max(0, Math.min(2, Math.round(Number(nextStrength) || 0))); applyDataSourceOpacity(dataSource, definition, opacity, styleStrength); viewer?.scene?.requestRender?.(); return styleStrength; },
+    getStyleStrength() { return styleStrength; },
     getRenderHandle() { return dataSource; },
     raiseToTop() { if (viewer && dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer?.scene?.requestRender?.(); },
     async update() {
@@ -284,7 +301,7 @@ function createMarineLayer(definition: MarineLayerDefinition) {
         const nextSource = await Cesium.GeoJsonDataSource.load(geojson, { clampToGround: true });
         if (!enabled || requestGeneration !== generation) { nextSource.destroy?.(); return false; }
         styleDataSource(nextSource, definition);
-        applyDataSourceOpacity(nextSource, definition, opacity);
+        applyDataSourceOpacity(nextSource, definition, opacity, styleStrength);
         nextSource.show = true;
         viewer.dataSources.add(nextSource);
         if (dataSource) viewer.dataSources.remove(dataSource, true);
@@ -301,7 +318,7 @@ function createMarineLayer(definition: MarineLayerDefinition) {
     destroy() {
       enabled = false; generation += 1;
       if (viewer && dataSource) viewer.dataSources.remove(dataSource, true);
-      dataSource = null; viewer = null; count = 0; lastUpdate = null; lastError = null; opacity = 1;
+      dataSource = null; viewer = null; count = 0; lastUpdate = null; lastError = null; opacity = 1; styleStrength = 1;
     },
     getStats() { return { count, lastUpdate, error: lastError }; },
   };

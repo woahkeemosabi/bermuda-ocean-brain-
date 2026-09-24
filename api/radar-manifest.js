@@ -10,25 +10,17 @@ export default async function handler(req, res) {
     });
     if (!upstream.ok) return res.status(502).json({ error: 'Radar source unavailable' });
     const body = await upstream.json();
-    const frames = Array.isArray(body?.radar?.past) ? body.radar.past : [];
-    const frame = frames.at(-1);
     const host = String(body?.host || '');
-    const path = String(frame?.path || '');
-
-    // RainViewer migrated frame IDs from numeric timestamps to opaque IDs.
-    // Validate the fixed host and path shape without assuming the identifier is numeric.
-    if (
-      host !== 'https://tilecache.rainviewer.com' ||
-      !/^\/v2\/radar\/[A-Za-z0-9_-]{6,64}$/.test(path) ||
-      !Number.isFinite(Number(frame?.time))
-    ) {
-      console.warn('[radar-manifest] malformed upstream manifest', { host, path, time: frame?.time });
+    const raw = Array.isArray(body?.radar?.past) ? body.radar.past : [];
+    const frames = raw.slice(-8).map((frame) => ({
+      path: String(frame?.path || ''),
+      time: new Date(Number(frame?.time) * 1000).toISOString(),
+    })).filter((frame) => /^\/v2\/radar\/\d+$/.test(frame.path));
+    if (host !== 'https://tilecache.rainviewer.com' || !frames.length)
       return res.status(502).json({ error: 'Radar manifest malformed' });
-    }
-
-    const time = new Date(Number(frame.time) * 1000).toISOString();
+    const latest = frames.at(-1);
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
-    return res.status(200).json({ host, path, time, attribution: 'RainViewer' });
+    return res.status(200).json({ host, path: latest.path, time: latest.time, frames, attribution: 'RainViewer' });
   } catch (error) {
     console.warn('[radar-manifest]', error);
     return res.status(502).json({ error: 'Radar source unavailable' });
