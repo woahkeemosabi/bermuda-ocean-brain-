@@ -1,4 +1,5 @@
 import './styles.css';
+import { esc, fmt, renderVesselRows } from './aisDisplay';
 
 type AnyObj = Record<string, any>;
 
@@ -11,23 +12,6 @@ const MARINE = [
   ['subsea-cables', 'Subsea cables'],
   ['eez', 'EEZ'],
 ] as const;
-
-function esc(v: unknown) {
-  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c] || c));
-}
-
-function ageLabel(seconds: unknown) {
-  const n = Number(seconds);
-  if (!Number.isFinite(n)) return '—';
-  if (n < 60) return `${Math.round(n)}s`;
-  if (n < 3600) return `${Math.round(n / 60)}m`;
-  return `${(n / 3600).toFixed(1)}h`;
-}
-
-function fmt(value: unknown, digits = 1) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(digits) : '—';
-}
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
@@ -81,18 +65,22 @@ async function loadSea() {
   try {
     const r = await fetch('/api/ais-live?maxRows=500&diagnostic=1', { cache: 'no-store' });
     const data = await r.json();
-    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    if (!r.ok) throw new Error(`AIS request failed: HTTP ${r.status}`);
+    if (!Array.isArray(data?.rows)) throw new Error('AIS response is missing its rows array');
+    const rows = data.rows;
     seaMeta.textContent = `${rows.length} rows · ${data?.status || 'unknown'} · ${data?.sampledAt ? new Date(data.sampledAt).toLocaleTimeString() : ''}`;
-    seaWarning.classList.toggle('hidden', rows.length > 0);
-    seaWarning.textContent = rows.length ? '' : (data?.error || 'No AIS positions returned.');
-    seaBody.innerHTML = rows.length ? rows.map((v: AnyObj) => `<tr><td>${esc(v.name || 'Unnamed')}</td><td>${esc(v.type || '—')}</td><td>${esc(v.mmsi)}</td><td>${esc(ageLabel(v.age_s))}</td><td>${esc(fmt(v.speed))} kt</td><td>${esc(fmt(v.course,0))}°</td><td>${esc(fmt(v.lat,5))}</td><td>${esc(fmt(v.lon,5))}</td><td>${esc(v.source || '—')}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">NO AIS DATA RECEIVED — THIS DOES NOT MEAN ZERO SHIPS.</td></tr>';
+    seaWarning.classList.toggle('hidden', !data?.error && rows.length > 0);
+    seaWarning.textContent = data?.error || (rows.length ? '' : 'No AIS positions returned.');
+    seaBody.innerHTML = renderVesselRows(rows);
     const diagnostics = Array.isArray(data?.diagnostics) ? data.diagnostics : [];
-    sourceDiag.innerHTML = diagnostics.map((d: AnyObj) => `<article class="diag ${d.ok ? 'ok' : 'bad'}"><div><b>${esc(d.source)}</b><span>${d.ok ? 'CONNECTED/RESPONDED' : 'FAILED'}</span></div><strong>${d.count == null ? '—' : esc(d.count)} positions</strong><p>${esc(d.error || d.streamError || d.note || `Response ${d.ms ?? '—'} ms`)}</p>${d.source === 'AISStream' ? `<code>connected=${esc(d.connected)} frames=${esc(d.frames)} positionFrames=${esc(d.positionFrames)} sample=${esc(d.sampleMs)}ms</code>` : ''}</article>`).join('');
+    sourceDiag.innerHTML = diagnostics.map((d: AnyObj) => `<article class="diag ${d.ok && d.count > 0 ? 'ok' : d.ok ? '' : 'bad'}"><div><b>${esc(d.source)}</b><span>${esc(d.status || (d.ok ? 'responded' : 'failed'))}</span></div><strong>${d.count == null ? '—' : esc(d.count)} positions</strong><p>${esc(d.error || d.streamError || d.note || `Response ${d.ms ?? '—'} ms`)}</p>${d.source === 'AISStream' ? `<code>connected=${esc(d.connected)} subscribed=${esc(d.subscriptionConfirmed)} frames=${esc(d.frames)} positionFrames=${esc(d.positionFrames)} sample=${esc(d.sampleMs)}ms</code>` : ''}</article>`).join('');
     return { count: rows.length, status: data?.status, source: data?.source, ok: rows.length > 0 };
   } catch (error) {
     seaMeta.textContent = 'request failed';
     seaWarning.classList.remove('hidden');
     seaWarning.textContent = String(error);
+    seaBody.innerHTML = '<tr><td colspan="9" class="empty">AIS REQUEST FAILED — PREVIOUS ROWS ARE NOT CURRENT.</td></tr>';
+    sourceDiag.innerHTML = '';
     return { count: 0, status: 'failed', source: '', ok: false };
   }
 }
@@ -143,12 +131,13 @@ async function loadOcean() {
 }
 
 async function refresh() {
+  if (refreshBtn.disabled) return;
   refreshBtn.disabled = true;
   refreshBtn.textContent = 'TESTING SOURCES…';
   statusGrid.innerHTML = card('SEA','TESTING','idle','Open Waters + facha.dev + AISStream') + card('AIR','TESTING','idle','Multiple ADS-B sources') + card('MARINE GIS','TESTING','idle','Bermuda MSP') + card('OCEAN','TESTING','idle','Open-Meteo Marine');
   const [sea, air, marine, ocean] = await Promise.all([loadSea(), loadAir(), loadMarine(), loadOcean()]);
   statusGrid.innerHTML = [
-    card('SEA', sea.count ? `${sea.count} VESSELS` : 'NO DATA', sea.count ? 'ok':'bad', sea.count ? sea.source : 'Feed/coverage failure — not “zero ships”'),
+    card('SEA', sea.count ? `${sea.count} VESSELS` : 'NO DATA', sea.count ? (sea.status === 'data-present' ? 'ok' : 'warn'):'bad', sea.count ? sea.source : 'Feed/coverage failure — not “zero ships”'),
     card('AIR', `${air.count} AIRCRAFT`, air.ok ? 'ok':'bad', air.source),
     card('MARINE GIS', `${marine.good}/${marine.total} LIVE`, marine.good === marine.total ? 'ok' : marine.good ? 'warn':'bad', 'Real Bermuda MSP feature endpoints'),
     card('OCEAN', ocean.ok ? 'LIVE' : 'FAILED', ocean.ok ? 'ok':'bad', ocean.ok ? 'Marine model endpoint responded' : 'Marine model endpoint failed'),
