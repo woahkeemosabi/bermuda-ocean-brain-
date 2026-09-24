@@ -254,13 +254,7 @@ async function loadMarine(viewer: Cesium.Viewer) {
         }
         if (e.position && !e.polyline && !e.polygon) {
           e.billboard = undefined;
-          e.point = new Cesium.PointGraphics({
-            pixelSize: def.id === 'seagrass' ? 2.2 : 2.6,
-            color: color.withAlpha(def.id === 'seagrass' ? 0.42 : 0.56),
-            outlineWidth: 0,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, def.id === 'seagrass' ? 18_000 : 55_000),
-          });
+          e.point = undefined;
           e.label = undefined;
         }
       }
@@ -365,11 +359,13 @@ function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
         const colorHex = kind === 'cargo' ? '#ffad72' : kind === 'helicopter' ? '#ffd276' : '#83dfff';
         const color = Cesium.Color.fromCssColorString(colorHex);
         const id = `air:${icao || callsign}`;
-        const position = Cesium.Cartesian3.fromDegrees(lon, lat, Math.max(800, altM));
-        const labelSub = [typeCode || kind.toUpperCase(), speedKt ? `${Math.round(speedKt)} KT` : ''].filter(Boolean).join(' · ');
+        const onGround = Boolean(s[8]) || ((speedKt ?? 999) < 35 && altM < 1200);
+        const position = Cesium.Cartesian3.fromDegrees(lon, lat, onGround ? 45 : Math.max(500, altM));
+        const labelSub = [typeCode || kind.toUpperCase(), onGround ? 'GROUND' : (speedKt !== null ? `${Math.round(speedKt)} KT` : '')].filter(Boolean).join(' · ');
+        const iconPx = onGround ? 28 : 34;
         next.entities.add({
           id, position,
-          billboard: { image: aircraftIcon(typeCode, kind), width: 48, height: 48, rotation: Cesium.Math.toRadians(-heading), alignedAxis: Cesium.Cartesian3.ZERO, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(10_000, 1.15, 500_000, 0.72), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 480_000) },
+          billboard: { image: aircraftIcon(typeCode, kind), width: iconPx, height: iconPx, rotation: Cesium.Math.toRadians(-heading), alignedAxis: Cesium.Cartesian3.ZERO, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(3_000, 1.0, 500_000, 0.55), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 480_000) },
           label: contactLabel(callsign, labelSub, color),
           properties: { obKind:'aircraft', callsign, registration, typeCode, model, className: kind === 'bizjet' ? 'BUSINESS JET' : kind === 'cargo' ? 'CARGO AIRCRAFT' : kind === 'prop' ? 'PROP / TURBOPROP' : kind === 'helicopter' ? 'HELICOPTER' : 'AIRCRAFT', altitudeFt: feetFromM(altM) ?? '', speedKt: speedKt ?? '', heading, operator },
         });
@@ -482,7 +478,7 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
       const position = Cesium.Cartesian3.fromDegrees(lon, lat, 100);
       next.entities.add({
         id, position,
-        billboard:{ image:vesselIcon(classification.key,colorHex), width:classification.key==='sail'?46:50, height:44, rotation:Cesium.Math.toRadians(-heading), disableDepthTestDistance:Number.POSITIVE_INFINITY, scaleByDistance:new Cesium.NearFarScalar(4_000,1.45,350_000,0.70), distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,360_000)},
+        billboard:{ image:vesselIcon(classification.key,colorHex), width:classification.key==='sail'?34:38, height:34, rotation:Cesium.Math.toRadians(-heading), disableDepthTestDistance:Number.POSITIVE_INFINITY, scaleByDistance:new Cesium.NearFarScalar(4_000,1.15,350_000,0.58), distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,360_000)},
         label: contactLabel(name.slice(0,20), `${classification.label}${speedKt !== null ? ` · ${speedKt.toFixed(1)} KT` : ''}`, color),
         properties:{ obKind:'vessel', name, mmsi, className:classification.label, lengthM:classification.length ?? '', speedKt:speedKt ?? '', heading, destination },
       });
@@ -522,7 +518,8 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
       feedSource = text(payload?.source) || feedSource;
       rows.forEach(absorb);
       if (!rows.length && contacts.size === 0) {
-        status = { count: 0, source: feedSource || 'AIS COVERAGE SCAN' };
+        const coverageGap = ['no-coverage','degraded','no-sample'].includes(text(payload?.status));
+        status = coverageGap ? { count: 0, source: 'AIS COVERAGE SCAN' } : { count: 0, source: feedSource || 'AIS COVERAGE SCAN' };
         updateContactHud(root,null,status);
       } else if (contacts.size > 0) {
         scheduleRender();
@@ -589,7 +586,8 @@ function updateContactHud(root: HTMLElement, air: LiveContactStatus | null, sea:
   if (air) lastAir = air;
   if (sea) lastSea = sea;
   (root.querySelector('#air-count') as HTMLElement).textContent = lastAir.error ? '—' : String(lastAir.count);
-  (root.querySelector('#sea-count') as HTMLElement).textContent = lastSea.error ? '—' : String(lastSea.count);
+  const seaScanning = !lastSea.error && lastSea.count === 0 && /SCAN|CONNECT|RECONNECT/i.test(lastSea.source || '');
+  (root.querySelector('#sea-count') as HTMLElement).textContent = lastSea.error ? '—' : seaScanning ? 'SCAN' : String(lastSea.count);
   const total = (lastAir.error ? 0 : lastAir.count) + (lastSea.error ? 0 : lastSea.count);
   const scanCopy = root.querySelector('#scan-copy') as HTMLElement;
   scanCopy.textContent = total > 0 ? `${total} TARGET${total===1?'':'S'} IN VIEW` : lastSea.error ? 'AIR LIVE · SEA FEED DEGRADED' : 'LIVE AIR + SEA SCAN';

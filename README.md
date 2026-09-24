@@ -23,3 +23,10 @@ Google Photorealistic 3D uses Cesium ion asset 2275207.
 - Subsea cables are amber and only appear at close range.
 - AIS now uses the streaming endpoint as primary with automatic EventSource reconnect and a broader Bermuda regional box.
 - A connected-but-empty AIS stream displays SEA 0 rather than implying a feed failure.
+
+
+## v22
+- Multi-source Bermuda AIS: Open Waters snapshot + facha.dev radius + AISStream fallback.
+- Open Waters native WebSocket now uses snapshot:true rather than an invalid HTTP/SSE assumption.
+- Ground aircraft render smaller and are labelled GROUND.
+- Marine point-speckle clutter removed; HUD/header/dock tightened on mobile.

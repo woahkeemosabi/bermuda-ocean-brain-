@@ -1,14 +1,15 @@
 import WebSocket from 'ws';
 
 const OPEN_WATERS_URL = 'https://ais.openwaters.io/v1/vessels';
+const FACHA_URL = 'https://api.facha.dev/v1/ship/radius/32.3078/-64.7505/100';
 const AIS_URL = 'wss://stream.aisstream.io/v0/stream';
 const BBOX = '31.55,-65.75,33.05,-63.75';
 const AIS_BOUNDS = [[[31.55, -65.75], [33.05, -63.75]]];
 const TYPES = ['PositionReport','StandardClassBPositionReport','ExtendedClassBPositionReport','ShipStaticData','StaticDataReport'];
 const RETAIN_MS = 30 * 60 * 1000;
 
-let lastSuccessfulRows = [];
-let lastSuccessfulAt = 0;
+let warmRows = [];
+let warmAt = 0;
 
 function finite(value) {
   const n = Number(value);
@@ -34,7 +35,7 @@ function normalizeOpenWaters(feature) {
     lon,
     name: String(props.name ?? `MMSI ${mmsi}`).trim(),
     imo: props.imo ?? '',
-    type: props.type ?? '',
+    type: props.type ?? props.ship_type ?? '',
     destination: String(props.destination ?? '').trim(),
     callSign: String(props.callsign ?? props.callSign ?? '').trim(),
     length: finite(props.length),
@@ -42,28 +43,78 @@ function normalizeOpenWaters(feature) {
     course: finite(props.cog),
     heading: finite(props.heading),
     navStatus: props.nav_status ?? '',
-    last_position_UTC: isoOrNow(props.seen),
+    last_position_UTC: isoOrNow(props.seen ?? props.timestamp),
     source: String(props.source ?? 'Open Waters AIS'),
     station: String(props.station ?? ''),
     retained: true,
   };
 }
 
-async function fetchOpenWaters(maxRows) {
+function normalizeFacha(row) {
+  const mmsi = String(row?.mmsi ?? '').trim();
+  const lat = finite(row?.latitude);
+  const lon = finite(row?.longitude);
+  if (!mmsi || lat === null || lon === null) return null;
+  const bow = finite(row?.dimensionToBow);
+  const stern = finite(row?.dimensionToStern);
+  const length = bow !== null && stern !== null ? bow + stern : finite(row?.length);
+  return {
+    mmsi,
+    lat,
+    lon,
+    name: String(row?.name ?? `MMSI ${mmsi}`).trim(),
+    imo: row?.imoNumber ?? row?.imo ?? '',
+    type: row?.vesselType ?? row?.vesselTypeSlug ?? row?.type ?? '',
+    destination: String(row?.destination ?? '').trim(),
+    callSign: String(row?.callSign ?? '').trim(),
+    length,
+    speed: finite(row?.speedOverGround),
+    course: finite(row?.courseOverGround),
+    heading: finite(row?.heading),
+    navStatus: row?.navigationalStatus ?? '',
+    last_position_UTC: isoOrNow(row?.timestamp),
+    source: 'facha.dev AIS',
+    retained: true,
+  };
+}
+
+async function fetchJson(url, timeoutMs = 7000) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${OPEN_WATERS_URL}?bbox=${encodeURIComponent(BBOX)}`, {
-      headers: { Accept: 'application/geo+json, application/json' },
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`Open Waters HTTP ${response.status}`);
-    const data = await response.json();
-    const features = Array.isArray(data?.features) ? data.features : [];
-    return features.map(normalizeOpenWaters).filter(Boolean).slice(0, maxRows);
+    const response = await fetch(url, { headers: { Accept: 'application/json, application/geo+json' }, signal: controller.signal });
+    if (!response.ok) throw new Error(`${new URL(url).hostname} HTTP ${response.status}`);
+    return await response.json();
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchOpenWaters() {
+  const data = await fetchJson(`${OPEN_WATERS_URL}?bbox=${encodeURIComponent(BBOX)}`);
+  const features = Array.isArray(data?.features) ? data.features : [];
+  return features.map(normalizeOpenWaters).filter(Boolean);
+}
+
+async function fetchFacha() {
+  const data = await fetchJson(FACHA_URL);
+  const rows = Array.isArray(data) ? data : Array.isArray(data?.vessels) ? data.vessels : Array.isArray(data?.data) ? data.data : [];
+  return rows.map(normalizeFacha).filter(Boolean);
+}
+
+function mergeRows(groups, maxRows) {
+  const merged = new Map();
+  for (const rows of groups) {
+    for (const row of rows) {
+      if (!row?.mmsi) continue;
+      const prev = merged.get(row.mmsi);
+      if (!prev || Date.parse(row.last_position_UTC) >= Date.parse(prev.last_position_UTC)) merged.set(row.mmsi, { ...prev, ...row });
+      else merged.set(row.mmsi, { ...row, ...prev });
+    }
+  }
+  return Array.from(merged.values())
+    .sort((a, b) => Date.parse(b.last_position_UTC) - Date.parse(a.last_position_UTC))
+    .slice(0, maxRows);
 }
 
 function normalizeStatic(type, payload, meta) {
@@ -127,7 +178,6 @@ async function sampleAis(apiKey, sampleMs) {
     const socket = new WebSocket(AIS_URL, { perMessageDeflate: true });
     let settled = false;
     const hardTimer = setTimeout(() => finish(), sampleMs);
-
     function finish(error) {
       if (settled) return;
       settled = true;
@@ -135,11 +185,7 @@ async function sampleAis(apiKey, sampleMs) {
       try { socket.close(); } catch {}
       error ? reject(error) : resolve();
     }
-
-    socket.on('open', () => {
-      socket.send(JSON.stringify({ APIKey: apiKey, BoundingBoxes: AIS_BOUNDS, FilterMessageTypes: TYPES }));
-    });
-
+    socket.on('open', () => socket.send(JSON.stringify({ APIKey: apiKey, BoundingBoxes: AIS_BOUNDS, FilterMessageTypes: TYPES })));
     socket.on('message', raw => {
       try {
         const envelope = JSON.parse(raw.toString());
@@ -156,7 +202,6 @@ async function sampleAis(apiKey, sampleMs) {
         if (row) rows.set(row.mmsi, row);
       } catch {}
     });
-
     socket.on('error', () => finish(new Error('AISStream connection failed')));
     socket.on('close', () => { if (!settled && rows.size > 0) finish(); });
   });
@@ -165,13 +210,13 @@ async function sampleAis(apiKey, sampleMs) {
 
 function remember(rows) {
   if (!rows.length) return;
-  lastSuccessfulRows = rows;
-  lastSuccessfulAt = Date.now();
+  warmRows = rows;
+  warmAt = Date.now();
 }
 
-function cachedRows(maxRows) {
-  if (!lastSuccessfulRows.length || Date.now() - lastSuccessfulAt > RETAIN_MS) return [];
-  return lastSuccessfulRows.slice(0, maxRows).map(row => ({ ...row, retained: true }));
+function warmCache(maxRows) {
+  if (!warmRows.length || Date.now() - warmAt > RETAIN_MS) return [];
+  return warmRows.slice(0, maxRows).map(row => ({ ...row, retained: true }));
 }
 
 export default async function handler(req, res) {
@@ -179,68 +224,31 @@ export default async function handler(req, res) {
   const maxRows = Math.max(1, Math.min(12000, Number(req.query?.maxRows ?? 1200) || 1200));
   res.setHeader('Cache-Control', 'no-store');
 
-  try {
-    const retained = await fetchOpenWaters(maxRows);
-    if (retained.length) {
-      remember(retained);
-      return res.status(200).json({
-        rows: retained,
-        source: 'Open Waters AIS · retained 30 min',
-        status: 'retained-live',
-        error: null,
-        coverage: 'Bermuda waters',
-        sampledAt: new Date().toISOString(),
-        refreshing: false,
-        retentionMinutes: 30,
-      });
-    }
-  } catch (error) {
-    console.warn('Open Waters retained AIS unavailable', error instanceof Error ? error.message : error);
+  const settled = await Promise.allSettled([fetchOpenWaters(), fetchFacha()]);
+  const snapshotGroups = settled.map(result => result.status === 'fulfilled' ? result.value : []);
+  const snapshotRows = mergeRows(snapshotGroups, maxRows);
+  if (snapshotRows.length) {
+    remember(snapshotRows);
+    const sources = Array.from(new Set(snapshotRows.map(row => row.source))).join(' + ');
+    return res.status(200).json({ rows: snapshotRows, source: sources, status: 'retained-live', error: null, coverage: 'Bermuda + 100 km', sampledAt: new Date().toISOString(), refreshing: false, retentionMinutes: 30 });
   }
 
   if (apiKey) {
     try {
-      const liveRows = (await sampleAis(apiKey, 9000)).slice(0, maxRows);
+      const liveRows = mergeRows([await sampleAis(apiKey, 7000)], maxRows);
       if (liveRows.length) {
         remember(liveRows);
-        return res.status(200).json({
-          rows: liveRows,
-          source: 'AISStream · live sample',
-          status: 'live',
-          error: null,
-          coverage: 'Bermuda waters',
-          sampledAt: new Date().toISOString(),
-          refreshing: false,
-          retentionMinutes: 30,
-        });
+        return res.status(200).json({ rows: liveRows, source: 'AISStream · live sample', status: 'live', error: null, coverage: 'Bermuda waters', sampledAt: new Date().toISOString(), refreshing: false, retentionMinutes: 30 });
       }
     } catch (error) {
-      console.warn('AISStream fallback unavailable', error instanceof Error ? error.message : error);
+      console.warn('AISStream sample unavailable', error instanceof Error ? error.message : error);
     }
   }
 
-  const cached = cachedRows(maxRows);
+  const cached = warmCache(maxRows);
   if (cached.length) {
-    return res.status(200).json({
-      rows: cached,
-      source: 'Bermuda Ocean Brain · recent AIS cache',
-      status: 'recent-cache',
-      error: null,
-      coverage: 'Bermuda waters',
-      sampledAt: new Date(lastSuccessfulAt).toISOString(),
-      refreshing: true,
-      retentionMinutes: 30,
-    });
+    return res.status(200).json({ rows: cached, source: 'Bermuda Ocean Brain · warm AIS cache', status: 'recent-cache', error: null, coverage: 'Bermuda waters', sampledAt: new Date(warmAt).toISOString(), refreshing: true, retentionMinutes: 30 });
   }
 
-  return res.status(200).json({
-    rows: [],
-    source: 'AIS coverage scan',
-    status: 'no-coverage',
-    error: null,
-    coverage: 'Bermuda waters',
-    sampledAt: new Date().toISOString(),
-    refreshing: true,
-    retentionMinutes: 30,
-  });
+  return res.status(200).json({ rows: [], source: 'Multi-source AIS coverage scan', status: 'no-coverage', error: null, coverage: 'Bermuda + 100 km', sampledAt: new Date().toISOString(), refreshing: true, retentionMinutes: 30 });
 }
