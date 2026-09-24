@@ -50,17 +50,17 @@ function aircraftKind(typeCode: string, description: string, operator: string) {
 function aircraftIcon(kind: string, color: string) {
   let body = '';
   if (kind === 'helicopter') {
-    body = `<g fill="none" stroke="${color}" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="24" cy="25" rx="8" ry="5"/><path d="M32 25h9M40 22v6M16 25H7M24 20v-8M11 12h26"/></g>`;
+    body = `<g fill="none" stroke="${color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="28" cy="29" rx="9" ry="5.5"/><path d="M37 29h11M47 25v8M19 29H8M28 23V11M12 11h32"/></g>`;
   } else if (kind === 'prop') {
-    body = `<g fill="${color}"><path d="M23 6h3l2 15 14 5v3l-14-1-2 13 7 4v2l-9-2-9 2v-2l7-4-2-13-14 1v-3l14-5z"/><circle cx="24" cy="7" r="3" fill="none" stroke="${color}" stroke-width="1.7"/></g>`;
+    body = `<g fill="${color}"><path d="M27 5h4l2 18 17 6v4l-17-2-3 16 8 5v2l-9-2-10 2v-2l8-5-3-16-18 2v-4l18-6z"/><circle cx="29" cy="7" r="4" fill="none" stroke="${color}" stroke-width="1.8"/></g>`;
   } else if (kind === 'bizjet') {
-    body = `<path fill="${color}" d="M23 5h3l2 15 12 4v3l-12-1-3 14 6 3v2l-7-1-7 1v-2l6-3-3-14-12 1v-3l12-4z"/>`;
+    body = `<path fill="${color}" d="M27 4h4l3 18 15 5v4l-15-2-3 17 8 4v3l-10-2-10 2v-3l8-4-3-17-15 2v-4l15-5z"/>`;
   } else if (kind === 'cargo') {
-    body = `<path fill="${color}" d="M22 4h4l3 15 15 5v4l-15-1-3 13 8 5v2l-10-2-10 2v-2l8-5-3-13-15 1v-4l15-5z"/>`;
+    body = `<path fill="${color}" d="M26 4h6l4 18 18 6v5l-18-2-4 15 10 6v3l-13-3-13 3v-3l10-6-4-15-19 2v-5l19-6z"/>`;
   } else {
-    body = `<path fill="${color}" d="M22 4h4l3 16 14 5v3l-14-1-3 13 8 5v2l-10-2-10 2v-2l8-5-3-13-14 1v-3l14-5z"/>`;
+    body = `<path fill="${color}" d="M27 4h5l4 18 17 6v4l-17-2-4 16 10 6v3l-13-3-13 3v-3l10-6-4-16-18 2v-4l18-6z"/>`;
   }
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#02101a" fill-opacity=".54" stroke="${color}" stroke-opacity=".58"/>${body}</svg>`);
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#g)">${body}</g></svg>`);
 }
 
 function vesselKind(row: any) {
@@ -90,33 +90,33 @@ function vesselKind(row: any) {
 
 function vesselIcon(kind: string, color: string) {
   let shape = '';
-  if (kind === 'sail') shape = `<path d="M24 6v27M24 8 10 31h14zM26 12l12 19H26zM9 34h31l-5 7H14z" fill="${color}"/>`;
-  else if (kind === 'yacht' || kind === 'megayacht') shape = `<path d="M6 30h35l-6 10H14zM14 24h19l4 6H10zM18 18h12l3 6H16z" fill="${color}"/>`;
-  else if (kind === 'cargo' || kind === 'tanker') shape = `<path d="M5 28h38l-6 12H12zM11 21h26v7H11zM14 14h7v7h-7zM23 14h7v7h-7zM32 14h5v7h-5z" fill="${color}"/>`;
-  else if (kind === 'patrol') shape = `<path d="M7 30h34l-7 10H13zM18 21h14l5 9H12zM23 14h7v7h-7z" fill="${color}"/><path d="M8 27h32" stroke="#fff" stroke-width="2"/>`;
-  else shape = `<path d="M7 29h34l-6 11H13zM15 21h18l4 8H11z" fill="${color}"/>`;
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#02101a" fill-opacity=".54" stroke="${color}" stroke-opacity=".56"/>${shape}</svg>`);
+  if (kind === 'sail') shape = `<path d="M29 5v34M28 9 11 36h17zM31 13l15 23H31zM9 40h40l-7 10H16z" fill="${color}"/>`;
+  else if (kind === 'yacht' || kind === 'megayacht') shape = `<path d="M6 35h46l-8 13H16zM16 27h25l6 8H10zM22 19h15l4 8H19z" fill="${color}"/>`;
+  else if (kind === 'cargo' || kind === 'tanker') shape = `<path d="M5 33h48l-8 15H14zM12 24h34v9H12zM16 15h9v9h-9zM27 15h9v9h-9zM38 15h7v9h-7z" fill="${color}"/>`;
+  else if (kind === 'patrol') shape = `<path d="M7 34h44l-8 14H15zM20 24h18l7 10H13zM26 15h9v9h-9z" fill="${color}"/><path d="M10 31h39" stroke="#fff" stroke-width="2"/>`;
+  else shape = `<path d="M7 34h44l-8 14H15zM18 24h22l6 10H12z" fill="${color}"/>`;
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#g)">${shape}</g></svg>`);
 }
 
 function contactLabel(title: string, subtitle: string, color: Cesium.Color) {
   return {
-    text: `${title}\n${subtitle}`,
-    font: '700 11px ui-monospace, SFMono-Regular, Menlo, monospace',
+    text: `${title}${subtitle ? `  ·  ${subtitle}` : ''}`,
+    font: '800 10px ui-monospace, SFMono-Regular, Menlo, monospace',
     fillColor: Cesium.Color.WHITE,
-    outlineColor: Cesium.Color.BLACK.withAlpha(0.9),
+    outlineColor: Cesium.Color.BLACK.withAlpha(0.92),
     outlineWidth: 2,
     style: Cesium.LabelStyle.FILL_AND_OUTLINE,
     showBackground: true,
-    backgroundColor: Cesium.Color.fromCssColorString('#02101a').withAlpha(0.82),
-    backgroundPadding: new Cesium.Cartesian2(8, 6),
-    pixelOffset: new Cesium.Cartesian2(30, -12),
+    backgroundColor: Cesium.Color.fromCssColorString('#03131f').withAlpha(0.88),
+    backgroundPadding: new Cesium.Cartesian2(7, 5),
+    pixelOffset: new Cesium.Cartesian2(32, -6),
     horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
     verticalOrigin: Cesium.VerticalOrigin.CENTER,
     disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 240_000),
-    scaleByDistance: new Cesium.NearFarScalar(8_000, 1.0, 240_000, 0.62),
-    translucencyByDistance: new Cesium.NearFarScalar(150_000, 1.0, 360_000, 0.0),
-    eyeOffset: new Cesium.Cartesian3(0, 0, -10),
+    distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 190_000),
+    scaleByDistance: new Cesium.NearFarScalar(8_000, 1.0, 190_000, 0.72),
+    translucencyByDistance: new Cesium.NearFarScalar(135_000, 1.0, 260_000, 0.0),
+    eyeOffset: new Cesium.Cartesian3(0, 0, -12),
   } as any;
 }
 
@@ -137,12 +137,12 @@ function hudShell() {
       <div class="scan-metric"><small>ALT</small><strong id="alt-value">—</strong></div>
     </section>
     <div class="center-reticle" aria-hidden="true"><i></i><b></b></div>
+    <div class="world-scan" aria-hidden="true"></div>
     <div class="acquisition-toast" id="acquisition-toast">CONTACT ACQUIRED</div>
     <section class="intel-sheet glass" id="intel-sheet" aria-live="polite">
       <div class="sheet-head"><div class="sheet-icon" id="sheet-icon">◎</div><div><small id="sheet-kicker">WORLD INTELLIGENCE</small><h2 id="sheet-title">BERMUDA LIVE</h2><p id="sheet-subtitle">AUTO-CURATED SPATIAL CONTEXT</p></div><button id="sheet-close" aria-label="Close intelligence">×</button></div>
       <div class="sheet-grid" id="sheet-grid"></div>
     </section>
-    <section class="world-summary glass" id="world-summary"><small>AUTO WORLD</small><strong id="world-context">REEFS · SHELF · LIVE TARGETS</strong></section>
     <nav class="dock glass" aria-label="Ocean Brain controls">
       <button id="focus-btn"><span class="dock-icon target-icon"></span><b>FOCUS</b></button>
       <div class="world-live"><i></i><b>WORLD LIVE</b></div>
@@ -179,8 +179,8 @@ function defaultIntel(weather: any, air: LiveContactStatus, sea: LiveContactStat
 
 function focusBermuda(viewer: Cesium.Viewer, duration = 1.1) {
   viewer.camera.flyTo({
-    destination: Cesium.Cartesian3.fromDegrees(BERMUDA.lon, BERMUDA.lat, 66_000),
-    orientation: { heading: Cesium.Math.toRadians(22), pitch: Cesium.Math.toRadians(-78), roll: 0 },
+    destination: Cesium.Cartesian3.fromDegrees(BERMUDA.lon, BERMUDA.lat, 72_000),
+    orientation: { heading: Cesium.Math.toRadians(18), pitch: Cesium.Math.toRadians(-72), roll: 0 },
     duration,
     easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
   });
@@ -196,7 +196,7 @@ async function addGoogle3D(viewer: Cesium.Viewer) {
   try {
     const resource = await Cesium.IonResource.fromAssetId(2275207, { accessToken: CESIUM_TOKEN });
     const tileset = await Cesium.Cesium3DTileset.fromUrl(resource, {
-      maximumScreenSpaceError: 4.5,
+      maximumScreenSpaceError: 3.2,
       cacheBytes: 768 * 1024 * 1024,
       maximumCacheOverflowBytes: 512 * 1024 * 1024,
       preloadFlightDestinations: true,
@@ -212,10 +212,10 @@ async function addGoogle3D(viewer: Cesium.Viewer) {
 }
 
 const marineDefs = [
-  { key: 'shelf', id: 'shelf', color: '#23a8e8', fill: 0.07, line: 0.38, minKm: 0, maxKm: 165, inspect: false },
+  { key: 'shelf', id: 'shelf', color: '#23a8e8', fill: 0.05, line: 0.48, minKm: 0, maxKm: 165, inspect: false },
   { key: 'territorial-seas', id: 'territorial', color: '#35e6ff', fill: 0.015, line: 0.48, minKm: 30, maxKm: 230, inspect: false },
-  { key: 'coral-reef-type', id: 'coral', color: '#22f2d2', fill: 0.14, line: 0.22, minKm: 0, maxKm: 75, inspect: false },
-  { key: 'seagrass', id: 'seagrass', color: '#58ee9a', fill: 0.11, line: 0.15, minKm: 0, maxKm: 18, inspect: false },
+  { key: 'coral-reef-type', id: 'coral', color: '#22f2d2', fill: 0.08, line: 0.28, minKm: 0, maxKm: 75, inspect: false },
+  { key: 'seagrass', id: 'seagrass', color: '#58ee9a', fill: 0.07, line: 0.20, minKm: 0, maxKm: 18, inspect: false },
   { key: 'subsea-cables', id: 'cables', color: '#4dd7ff', fill: 0, line: 0.72, minKm: 0, maxKm: 120, inspect: true },
   { key: 'slope', id: 'slope', color: '#5168ff', fill: 0.025, line: 0.20, minKm: 85, maxKm: 340, inspect: false },
 ] as const;
@@ -364,7 +364,7 @@ function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
         const labelSub = [typeCode || kind.toUpperCase(), speedKt ? `${Math.round(speedKt)} KT` : ''].filter(Boolean).join(' · ');
         next.entities.add({
           id, position,
-          billboard: { image: aircraftIcon(kind, colorHex), width: 34, height: 34, rotation: Cesium.Math.toRadians(-heading), alignedAxis: Cesium.Cartesian3.ZERO, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(10_000, 1.25, 500_000, 0.68), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 480_000) },
+          billboard: { image: aircraftIcon(kind, colorHex), width: 44, height: 44, rotation: Cesium.Math.toRadians(-heading), alignedAxis: Cesium.Cartesian3.ZERO, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(10_000, 1.25, 500_000, 0.68), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 480_000) },
           label: contactLabel(callsign, labelSub, color),
           properties: { obKind:'aircraft', callsign, registration, typeCode, model, className: kind === 'bizjet' ? 'BUSINESS JET' : kind === 'cargo' ? 'CARGO AIRCRAFT' : kind === 'prop' ? 'PROP / TURBOPROP' : kind === 'helicopter' ? 'HELICOPTER' : 'AIRCRAFT', altitudeFt: feetFromM(altM) ?? '', speedKt: speedKt ?? '', heading, operator },
         });
@@ -372,9 +372,9 @@ function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
         tr.push([lon, lat, Math.max(800, altM)]);
         while (tr.length > 10) tr.shift();
         trails.set(id, tr);
-        if (tr.length > 1) next.entities.add({ id:`${id}:trail`, polyline:{ positions: tr.map(([x,y,z]) => Cesium.Cartesian3.fromDegrees(x,y,z)), width:1.3, material:new Cesium.PolylineGlowMaterialProperty({color:color.withAlpha(0.42), glowPower:0.18}), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,260_000) }});
+        if (tr.length > 1) next.entities.add({ id:`${id}:trail`, polyline:{ positions: tr.map(([x,y,z]) => Cesium.Cartesian3.fromDegrees(x,y,z)), width:0.9, material:new Cesium.PolylineGlowMaterialProperty({color:color.withAlpha(0.22), glowPower:0.12}), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,260_000) }});
         const end = destinationOffset(lon, lat, heading, 0.06);
-        next.entities.add({ id:`${id}:vector`, polyline:{ positions:[position,Cesium.Cartesian3.fromDegrees(end.lon,end.lat,Math.max(800,altM))], width:1.0, material:color.withAlpha(0.24), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,180_000) }});
+        next.entities.add({ id:`${id}:vector`, polyline:{ positions:[position,Cesium.Cartesian3.fromDegrees(end.lon,end.lat,Math.max(800,altM))], width:0.8, material:color.withAlpha(0.14), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,180_000) }});
         if (!initial && !seen.has(id)) acquisition(root, 'AIR CONTACT ACQUIRED');
         seen.add(id); count++;
       }
@@ -397,55 +397,132 @@ function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
 function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
   let source = new Cesium.CustomDataSource('sea-contacts');
   let status: LiveContactStatus = { count: 0 };
+  const contacts = new Map<string, any>();
   const trails = new Map<string, Array<[number,number]>>();
   const seen = new Set<string>();
   let initial = true;
+  let renderTimer: number | null = null;
+  let fallbackTimer: number | null = null;
+  let eventSource: EventSource | null = null;
   viewer.dataSources.add(source);
 
-  async function refresh() {
+  function scheduleRender() {
+    if (renderTimer !== null) return;
+    renderTimer = window.setTimeout(() => {
+      renderTimer = null;
+      void renderContacts();
+    }, 180);
+  }
+
+  async function renderContacts() {
+    const now = Date.now();
+    for (const [key, value] of contacts) {
+      if (now - Number(value.__seenAt || 0) > 8 * 60_000) contacts.delete(key);
+    }
+    const next = new Cesium.CustomDataSource('sea-contacts-next');
+    let count = 0;
+    for (const row of Array.from(contacts.values()).slice(0, 1200)) {
+      const lon = num(row?.lon ?? row?.longitude), lat = num(row?.lat ?? row?.latitude);
+      if (lon === null || lat === null) continue;
+      const name = text(row?.name ?? row?.input_name ?? row?.mmsi) || 'VESSEL';
+      const mmsi = text(row?.mmsi);
+      const speedKt = num(row?.speed ?? row?.sog ?? row?.speedKn ?? row?.speed_kn ?? row?.speedOverGround);
+      const heading = num(row?.heading ?? row?.course ?? row?.cog) ?? 0;
+      const destination = text(row?.destination ?? row?.dest);
+      const classification = vesselKind(row);
+      const colorHex = classification.key === 'cargo' ? '#59cfff' : classification.key === 'tanker' ? '#ff8b7d' : classification.key === 'patrol' ? '#5be7ff' : classification.key === 'yacht' || classification.key === 'megayacht' ? '#f5ddff' : '#4fffc0';
+      const color = Cesium.Color.fromCssColorString(colorHex);
+      const id = `sea:${mmsi || name}`;
+      const position = Cesium.Cartesian3.fromDegrees(lon, lat, 100);
+      next.entities.add({
+        id, position,
+        billboard:{ image:vesselIcon(classification.key,colorHex), width:classification.key==='sail'?46:50, height:44, rotation:Cesium.Math.toRadians(-heading), disableDepthTestDistance:Number.POSITIVE_INFINITY, scaleByDistance:new Cesium.NearFarScalar(4_000,1.45,350_000,0.70), distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,360_000)},
+        label: contactLabel(name.slice(0,20), `${classification.label}${speedKt !== null ? ` · ${speedKt.toFixed(1)} KT` : ''}`, color),
+        properties:{ obKind:'vessel', name, mmsi, className:classification.label, lengthM:classification.length ?? '', speedKt:speedKt ?? '', heading, destination },
+      });
+      const tr = trails.get(id) || [];
+      const last = tr[tr.length - 1];
+      if (!last || Math.abs(last[0]-lon) > 0.00001 || Math.abs(last[1]-lat) > 0.00001) tr.push([lon,lat]);
+      while (tr.length>12) tr.shift(); trails.set(id,tr);
+      if (tr.length>1) next.entities.add({ id:`${id}:trail`, polyline:{positions:tr.map(([x,y])=>Cesium.Cartesian3.fromDegrees(x,y,100)), width:1.15, material:new Cesium.PolylineGlowMaterialProperty({color:color.withAlpha(0.28),glowPower:0.14}), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,180_000)}});
+      if (!initial && !seen.has(id)) acquisition(root,'SEA CONTACT ACQUIRED');
+      seen.add(id); count++;
+    }
+    initial = false;
+    await viewer.dataSources.add(next);
+    viewer.dataSources.remove(source,true);
+    source = next;
+    status = { count, source: 'AISStream · Vercel' };
+    updateContactHud(root,null,status);
+  }
+
+  function absorb(row: any) {
+    const mmsi = text(row?.mmsi);
+    const lon = num(row?.lon ?? row?.longitude), lat = num(row?.lat ?? row?.latitude);
+    if (!mmsi || lon === null || lat === null) return;
+    const previous = contacts.get(mmsi) || {};
+    contacts.set(mmsi, { ...previous, ...row, __seenAt: Date.now() });
+    scheduleRender();
+  }
+
+  async function pollSnapshot() {
     try {
-      const r = await fetch('/api/ais-live?maxRows=1200', { cache: 'no-store' });
+      const r = await fetch('/api/ais-live?maxRows=1200&sampleMs=18000', { cache: 'no-store' });
       const payload = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(payload?.error || `HTTP ${r.status}`);
       const rows = Array.isArray(payload?.rows) ? payload.rows : [];
-      const next = new Cesium.CustomDataSource('sea-contacts-next');
-      let count = 0;
-      for (const row of rows.slice(0, 1200)) {
-        const lon = num(row?.lon ?? row?.longitude), lat = num(row?.lat ?? row?.latitude);
-        if (lon === null || lat === null) continue;
-        const name = text(row?.name ?? row?.input_name ?? row?.mmsi) || 'VESSEL';
-        const mmsi = text(row?.mmsi);
-        const speedKt = num(row?.speed ?? row?.sog ?? row?.speedKn ?? row?.speed_kn ?? row?.speedOverGround);
-        const heading = num(row?.heading ?? row?.course ?? row?.cog) ?? 0;
-        const destination = text(row?.destination ?? row?.dest);
-        const classification = vesselKind(row);
-        const colorHex = classification.key === 'cargo' ? '#59cfff' : classification.key === 'tanker' ? '#ff8b7d' : classification.key === 'patrol' ? '#5be7ff' : classification.key === 'yacht' || classification.key === 'megayacht' ? '#f5ddff' : '#4fffc0';
-        const color = Cesium.Color.fromCssColorString(colorHex);
-        const id = `sea:${mmsi || name}`;
-        const position = Cesium.Cartesian3.fromDegrees(lon, lat, 100);
-        next.entities.add({
-          id, position,
-          billboard:{ image:vesselIcon(classification.key,colorHex), width:classification.key==='sail'?32:36, height:32, rotation:Cesium.Math.toRadians(-heading), disableDepthTestDistance:Number.POSITIVE_INFINITY, scaleByDistance:new Cesium.NearFarScalar(4_000,1.35,350_000,0.65), distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,320_000)},
-          label: contactLabel(name.slice(0,20), `${classification.label}${speedKt !== null ? ` · ${speedKt.toFixed(1)} KT` : ''}`, color),
-          properties:{ obKind:'vessel', name, mmsi, className:classification.label, lengthM:classification.length ?? '', speedKt:speedKt ?? '', heading, destination },
-        });
-        const tr = trails.get(id) || [];
-        tr.push([lon,lat]); while (tr.length>10) tr.shift(); trails.set(id,tr);
-        if (tr.length>1) next.entities.add({ id:`${id}:trail`, polyline:{positions:tr.map(([x,y])=>Cesium.Cartesian3.fromDegrees(x,y,100)), width:1.5, material:new Cesium.PolylineGlowMaterialProperty({color:color.withAlpha(0.48),glowPower:0.15}), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,160_000)}});
-        if (!initial && !seen.has(id)) acquisition(root,'SEA CONTACT ACQUIRED');
-        seen.add(id); count++;
+      rows.forEach(absorb);
+      if (!rows.length && contacts.size === 0) {
+        status = { count: 0, source: payload?.source || 'AISStream', error: payload?.error || 'No AIS sample yet' };
+        updateContactHud(root,null,status);
       }
-      initial = false;
-      await viewer.dataSources.add(next); viewer.dataSources.remove(source,true); source=next;
-      status={count, source:'Live AIS'};
-      updateContactHud(root,null,status);
     } catch (error) {
-      status={count:0,error:String(error)};
-      updateContactHud(root,null,status);
+      if (contacts.size === 0) {
+        status = { count: 0, error: String(error) };
+        updateContactHud(root,null,status);
+      }
+    } finally {
+      fallbackTimer = window.setTimeout(()=>void pollSnapshot(), 30_000);
     }
   }
-  void refresh();
-  window.setInterval(()=>void refresh(),20_000);
+
+  function startLiveStream() {
+    if (!('EventSource' in window)) {
+      void pollSnapshot();
+      return;
+    }
+    eventSource = new EventSource('/api/ais-stream');
+    let opened = false;
+    eventSource.addEventListener('status', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data || '{}');
+        if (payload?.status === 'live') {
+          opened = true;
+          status = { count: contacts.size, source: 'AISStream · Vercel' };
+          updateContactHud(root,null,status);
+        } else if (payload?.error && contacts.size === 0) {
+          status = { count: 0, error: String(payload.error) };
+          updateContactHud(root,null,status);
+        }
+      } catch {}
+    });
+    eventSource.addEventListener('vessel', (event: MessageEvent) => {
+      try { absorb(JSON.parse(event.data)); } catch {}
+    });
+    eventSource.onerror = () => {
+      eventSource?.close();
+      eventSource = null;
+      if (!opened || contacts.size === 0) void pollSnapshot();
+      else fallbackTimer = window.setTimeout(()=>void pollSnapshot(), 4_000);
+    };
+  }
+
+  startLiveStream();
+  window.addEventListener('beforeunload',()=>{
+    eventSource?.close();
+    if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+    if (renderTimer !== null) window.clearTimeout(renderTimer);
+  }, { once:true });
   return { getStatus:()=>status };
 }
 
@@ -454,10 +531,11 @@ let lastSea: LiveContactStatus = { count: 0 };
 function updateContactHud(root: HTMLElement, air: LiveContactStatus | null, sea: LiveContactStatus | null) {
   if (air) lastAir = air;
   if (sea) lastSea = sea;
-  (root.querySelector('#air-count') as HTMLElement).textContent = String(lastAir.count);
-  (root.querySelector('#sea-count') as HTMLElement).textContent = String(lastSea.count);
-  const total = lastAir.count + lastSea.count;
-  (root.querySelector('#scan-copy') as HTMLElement).textContent = total > 0 ? `${total} TARGET${total===1?'':'S'} IN VIEW` : 'SCANNING BERMUDA…';
+  (root.querySelector('#air-count') as HTMLElement).textContent = lastAir.error ? '—' : String(lastAir.count);
+  (root.querySelector('#sea-count') as HTMLElement).textContent = lastSea.error ? '—' : String(lastSea.count);
+  const total = (lastAir.error ? 0 : lastAir.count) + (lastSea.error ? 0 : lastSea.count);
+  const scanCopy = root.querySelector('#scan-copy') as HTMLElement;
+  scanCopy.textContent = total > 0 ? `${total} TARGET${total===1?'':'S'} IN VIEW` : lastSea.error ? 'AIS UNAVAILABLE · AIR SCAN ACTIVE' : 'SCANNING BERMUDA…';
 }
 
 function acquisition(root: HTMLElement, message: string) {
@@ -494,6 +572,10 @@ async function start() {
   viewer.scene.fog.enabled = false;
   viewer.scene.highDynamicRange = true;
   viewer.scene.postProcessStages.fxaa.enabled = true;
+  try {
+    const bloom: any = viewer.scene.postProcessStages.bloom;
+    if (bloom) { bloom.enabled = true; bloom.uniforms.glowOnly = false; bloom.uniforms.contrast = 96; bloom.uniforms.brightness = -0.12; bloom.uniforms.delta = 1; bloom.uniforms.sigma = 1.7; bloom.uniforms.stepSize = 1.0; }
+  } catch {}
   viewer.resolutionScale = Math.min(Math.max(window.devicePixelRatio * 0.78, 1.25), 2.0);
   viewer.scene.globe.maximumScreenSpaceError = 1.35;
   viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1500;
@@ -515,11 +597,6 @@ async function start() {
   const setAlt = () => {
     const km = viewer.camera.positionCartographic.height / 1000;
     (root.querySelector('#alt-value') as HTMLElement).textContent = km >= 100 ? `${Math.round(km)}K` : `${Math.round(km)}K`;
-    const context = root.querySelector('#world-context') as HTMLElement;
-    if (km < 18) context.textContent='HABITAT DETAIL · LIVE TARGETS';
-    else if (km < 80) context.textContent='REEFS · SHELF · LIVE TARGETS';
-    else if (km < 220) context.textContent='SHELF · TERRITORIAL SEA · TARGETS';
-    else context.textContent='REGIONAL OCEAN · LIVE TARGETS';
   };
   setAlt(); viewer.camera.changed.addEventListener(setAlt);
 
@@ -531,7 +608,7 @@ async function start() {
   window.setTimeout(()=>loading?.classList.add('done'),350);
   window.setTimeout(()=>loading?.remove(),1000);
 
-  Object.assign(window,{__oceanBrain:{viewer,focusBermuda:()=>focusBermuda(viewer,1),getAir:air.getStatus,getSea:sea.getStatus}});
+  Object.assign(window,{__oceanBrain:{version:'v19',viewer,focusBermuda:()=>focusBermuda(viewer,1),getAir:air.getStatus,getSea:sea.getStatus}});
 }
 
 start().catch((error)=>{

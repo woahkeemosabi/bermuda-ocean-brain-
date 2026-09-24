@@ -1,9 +1,11 @@
 {
   "name": "bermuda-ocean-brain",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
-  "engines": { "node": "24.x" },
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "cesium": "^1.124.0"
+    "cesium": "^1.124.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

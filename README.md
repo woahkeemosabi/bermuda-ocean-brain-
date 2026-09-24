@@ -1,18 +1,16 @@
-# Bermuda Ocean Brain — v17 cinematic rebuild
+# Bermuda Ocean Brain — v19
 
-A clean rebuild of the mobile experience around the approved concept render rather than the previous GIS-control UI.
+Cinematic Cesium/Google 3D Bermuda intelligence interface.
 
-## Design contract
-- Map-first cinematic 3D Bermuda world
-- Automatic live aircraft and AIS vessel targets
-- Type-aware target silhouettes, labels and motion trails
-- Subtle Bermuda MSP reef / seagrass / shelf / territorial / cable context
-- No generic map-click GIS popups
-- One contextual intelligence sheet for real targets or explicit Intel
-- Compact top HUD + Focus / World Live / Intel dock
-- Cesium attribution kept clear and tappable below controls
+## v19 vessel architecture
+- Removes the AppDeploy AIS dependency entirely.
+- Connects server-side from Vercel directly to `wss://stream.aisstream.io/v0/stream`.
+- `/api/ais-stream` relays live Bermuda AIS as Server-Sent Events for fast contact appearance.
+- `/api/ais-live` provides a direct sampled JSON fallback when streaming is unavailable.
+- No simulated vessels are rendered. Feed outages are reported as unavailable rather than as zero real vessels.
 
-## Environment
-- `VITE_CESIUM_ION_TOKEN` (or legacy `VITE_CESIU_ION_TOKEN`)
+## Required Vercel environment variables
+- `VITE_CESIUM_ION_TOKEN` (legacy `VITE_CESIU_ION_TOKEN` also accepted)
+- `AISSTREAM_API_KEY` — server-only, never use a `VITE_` prefix
 
-The project uses Cesium ion asset 2275207 for Google Photorealistic 3D Tiles.
+Google Photorealistic 3D uses Cesium ion asset 2275207.

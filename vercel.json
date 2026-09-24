@@ -6,7 +6,41 @@
   "headers": [
     {
       "source": "/api/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
     }
-  ]
+  ],
+  "functions": {
+    "api/ais-stream.js": {
+      "maxDuration": 60
+    },
+    "api/ais-live.js": {
+      "maxDuration": 30
+    },
+    "api/ais-live/track.js": {
+      "maxDuration": 30
+    }
+  }
 }
