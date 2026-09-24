@@ -124,18 +124,18 @@ function entityAnchor(entity: any) {
 function configureClustering(dataSource: any, definition: MarineLayerDefinition) {
   if (!definition.clusterPoints) return;
   dataSource.clustering.enabled = true;
-  dataSource.clustering.pixelRange = 58;
-  dataSource.clustering.minimumClusterSize = 6;
+  dataSource.clustering.pixelRange = 72;
+  dataSource.clustering.minimumClusterSize = 10;
   const color = Cesium.Color.fromCssColorString(definition.color);
   const icon = oceanIconDataUrl(iconKind(definition), definition.color);
   dataSource.clustering.clusterEvent.addEventListener((entities: any[], cluster: any) => {
     cluster.point.show = false;
     cluster.billboard.show = true;
     cluster.billboard.image = icon;
-    cluster.billboard.width = 28;
-    cluster.billboard.height = 28;
+    cluster.billboard.width = 22;
+    cluster.billboard.height = 22;
     cluster.billboard.color = Cesium.Color.WHITE.withAlpha(0.94 * Number(dataSource.__oceanBrainOpacity ?? 1));
-    cluster.label.show = true;
+    cluster.label.show = false;
     cluster.label.text = String(entities.length);
     cluster.label.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
     cluster.label.fillColor = Cesium.Color.WHITE;
@@ -181,7 +181,7 @@ function styleDataSource(dataSource: any, definition: MarineLayerDefinition) {
         color: Cesium.Color.WHITE.withAlpha(definition.clusterPoints ? 0.82 : 0.96),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         scaleByDistance: new Cesium.NearFarScalar(4_000, 1.2, 130_000, 0.42),
-        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, definition.clusterPoints ? 85_000 : 300_000),
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, definition.clusterPoints ? 24_000 : 300_000),
       });
     } else if (entity.billboard && entity.position) {
       entity.billboard.image = icon;

@@ -33,3 +33,13 @@ Layer toggles never move the camera. Only the dedicated Focus control recenters 
 Exact external photos / registry imagery are intentionally not included.
 
 See `THIRD_PARTY_NOTICES.md` for GeoLibre attribution and MIT license notice.
+
+
+## v15 Auto World Mode
+
+- Removes manual mission-layer configuration from the mobile experience.
+- Automatically selects ocean layers by camera altitude (semantic zoom).
+- Replaces map wind arrows with a lightweight animated screen-space flow field.
+- Live traffic and marine context appear automatically; failed feeds stay out of the UI.
+- Keeps tap-to-identify intelligence cards and a single compact Intel sheet.
+- RainViewer radar manifest parser accepts current opaque frame IDs.

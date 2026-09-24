@@ -608,11 +608,11 @@ function createAircraftController(viewer: any): CustomLayerController {
             outlineWidth: 3,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             showBackground: true,
-            backgroundColor: Cesium.Color.fromCssColorString('#14120d').withAlpha(0.78),
+            backgroundColor: Cesium.Color.TRANSPARENT,
             pixelOffset: new Cesium.Cartesian2(0, -20),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 190_000),
-            scaleByDistance: new Cesium.NearFarScalar(15_000, 1, 190_000, 0.55),
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 72_000),
+            scaleByDistance: new Cesium.NearFarScalar(10_000, 0.9, 72_000, 0.62),
           } : undefined,
           properties: {
             oceanBrainKind: 'aircraft', iconKind: classification.key, className: classification.label,
@@ -626,8 +626,8 @@ function createAircraftController(viewer: any): CustomLayerController {
             id: `${entity.id}:vector`,
             polyline: {
               positions: [pointPosition, Cesium.Cartesian3.fromDegrees(end.longitude, end.latitude, altitude)],
-              width: 1.25,
-              material: color.withAlpha(0.36),
+              width: 1.1,
+              material: color.withAlpha(0.24),
               arcType: Cesium.ArcType.NONE,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 220_000),
             },
@@ -732,11 +732,11 @@ function createVesselController(viewer: any): CustomLayerController {
             outlineWidth: 3,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             showBackground: true,
-            backgroundColor: Cesium.Color.fromCssColorString('#071713').withAlpha(0.76),
+            backgroundColor: Cesium.Color.TRANSPARENT,
             pixelOffset: new Cesium.Cartesian2(0, -18),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 120_000),
-            scaleByDistance: new Cesium.NearFarScalar(5_000, 1, 120_000, 0.5),
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 48_000),
+            scaleByDistance: new Cesium.NearFarScalar(4_000, 0.92, 48_000, 0.62),
           } : undefined,
           properties: {
             oceanBrainKind: 'vessel', iconKind: classification.key, className: classification.label,
@@ -990,66 +990,47 @@ function destinationOffset(lon: number, lat: number, bearingDeg: number, distanc
 }
 
 function createWindController(viewer: any): CustomLayerController {
-  let dataSource: any = null;
+  let enabled = false;
   let status: LiveFeedStatus = { state: 'off', text: 'Atmospheric flow' };
-  const remove = () => {
-    if (dataSource) viewer.dataSources.remove(dataSource, true);
-    dataSource = null;
+  let timer: number | null = null;
+  const clearTimer = () => { if (timer !== null) window.clearTimeout(timer); timer = null; };
+  const schedule = () => { clearTimer(); if (enabled) timer = window.setTimeout(() => { void refresh(); }, 60_000); };
+  const publish = (speed: number, direction: number) => {
+    window.dispatchEvent(new CustomEvent('oceanbrain:wind', { detail: { speed, direction } }));
+  };
+  const refresh = async (): Promise<LiveFeedStatus> => {
+    if (!enabled) return status;
+    try {
+      const response = await fetch('/api/telemetry', { cache: 'no-store', headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error(`Wind HTTP ${response.status}`);
+      const payload = await response.json();
+      const speed = Number(payload?.weather?.windKn);
+      const direction = Number(payload?.weather?.windDirectionDeg);
+      if (!Number.isFinite(speed) || !Number.isFinite(direction)) throw new Error('Wind direction unavailable');
+      publish(speed, direction);
+      status = { state: 'live', text: `${Math.round(speed)} KT · ${Math.round(direction)}°` };
+      viewer.scene.requestRender?.();
+    } catch (error) {
+      status = { state: 'error', text: shortFeedError(error), error: String(error) };
+    } finally {
+      schedule();
+    }
+    return status;
   };
   return {
     async enable() {
+      enabled = true;
       status = { state: 'loading', text: 'SAMPLING WIND…' };
-      remove();
-      try {
-        const response = await fetch('/api/telemetry', { cache: 'no-store', headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(`Wind HTTP ${response.status}`);
-        const payload = await response.json();
-        const speedRaw = payload?.weather?.windKn;
-        const directionRaw = payload?.weather?.windDirectionDeg;
-        const speed = speedRaw === null || speedRaw === undefined ? NaN : Number(speedRaw);
-        const direction = directionRaw === null || directionRaw === undefined ? NaN : Number(directionRaw);
-        if (!Number.isFinite(speed) || !Number.isFinite(direction)) throw new Error('Wind direction unavailable');
-        const flowBearing = (direction + 180) % 360;
-        const length = Math.max(0.035, Math.min(0.095, 0.035 + speed * 0.0022));
-        const color = Cesium.Color.fromCssColorString('#66b9ff').withAlpha(0.55);
-        const source = new Cesium.CustomDataSource('ocean-brain-wind');
-        for (let row = 0; row < 4; row++) {
-          for (let col = 0; col < 5; col++) {
-            const latitude = 31.98 + row * 0.20 + (col % 2) * 0.035;
-            const longitude = -65.18 + col * 0.245;
-            const end = destinationOffset(longitude, latitude, flowBearing, length);
-            source.entities.add({
-              polyline: {
-                positions: [
-                  Cesium.Cartesian3.fromDegrees(longitude, latitude, 1000),
-                  Cesium.Cartesian3.fromDegrees(end.longitude, end.latitude, 1000),
-                ],
-                width: 1.75,
-                material: new Cesium.PolylineArrowMaterialProperty(color),
-                arcType: Cesium.ArcType.NONE,
-                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 125_000),
-              },
-            });
-          }
-        }
-        dataSource = source;
-        await viewer.dataSources.add(source);
-        status = { state: 'live', text: `${Math.round(speed)} KT · ${Math.round(direction)}°` };
-        viewer.scene.requestRender?.();
-        return status;
-      } catch (error) {
-        remove();
-        status = { state: 'error', text: shortFeedError(error), error: String(error) };
-        return status;
-      }
+      return refresh();
     },
     async disable() {
-      remove();
+      enabled = false;
+      clearTimer();
       status = { state: 'off', text: 'Atmospheric flow' };
+      window.dispatchEvent(new CustomEvent('oceanbrain:wind-off'));
       viewer.scene.requestRender?.();
     },
-    setVisible(visible: boolean) { if (dataSource) dataSource.show = visible; viewer.scene.requestRender?.(); },
-    raiseToTop() { if (dataSource) viewer.dataSources.raiseToTop?.(dataSource); viewer.scene.requestRender?.(); },
+    setVisible() {},
     getStatus: () => status,
   };
 }
@@ -1672,6 +1653,250 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
   return shell;
 }
 
+function installMobileExperienceV15(components: any, mapState: { tileset: any | null; errorCode: string | null }) {
+  if (!window.matchMedia('(max-width: 720px)').matches) return null;
+
+  const viewer = components.scene.viewer;
+  const dataManager = components.data.dataManager;
+  const photoreal3D = Boolean(mapState.tileset);
+  document.documentElement.classList.add('ocean-brain-mobile', 'ocean-brain-auto');
+
+  const shell = document.createElement('div');
+  shell.className = 'ob-mobile-shell ob-v15-shell';
+  shell.innerHTML = `
+    <canvas class="ob-wind-field" aria-hidden="true"></canvas>
+    <div class="ob-scan-sweep" aria-hidden="true"></div>
+
+    <header class="ob-v15-header">
+      <div class="ob-mobile-brand">
+        <img src="./logo.svg" alt="" />
+        <div><strong>BERMUDA OCEAN BRAIN</strong><span>LIVE ISLAND INTELLIGENCE</span></div>
+      </div>
+      <div class="ob-auto-pill"><i></i><span>AUTO</span></div>
+    </header>
+
+    <div class="ob-v15-hud" aria-label="Live Bermuda scan">
+      <div class="ob-v15-hud-primary"><span>LIVE SCAN</span><strong class="ob-v15-contact-line">SCANNING BERMUDA…</strong></div>
+      <div class="ob-v15-hud-stats">
+        <span><small>AIR</small><b class="ob-v15-air">--</b></span>
+        <span><small>SEA</small><b class="ob-v15-sea">--</b></span>
+        <span><small>WIND</small><b class="ob-v15-wind">--</b></span>
+        <span><small>ALT</small><b class="ob-v15-alt">--</b></span>
+      </div>
+    </div>
+
+    <div class="ob-reticle ob-v15-reticle" aria-hidden="true"><i></i><b></b><span></span></div>
+    <div class="ob-v15-context" aria-live="polite"><span class="ob-v15-context-kicker">AUTO LAYER</span><strong class="ob-v15-context-text">READING ISLAND…</strong></div>
+    <button class="ob-sheet-scrim" type="button" aria-label="Close intelligence panel"></button>
+
+    <section class="ob-intel-sheet ob-v15-intel" aria-label="Bermuda intelligence">
+      <div class="ob-sheet-handle"></div>
+      <div class="ob-sheet-heading">
+        <div><span class="ob-kicker">CURRENT WORLD STATE</span><strong>Bermuda Now</strong><small>No controls. Ocean Brain chooses what matters for this view.</small></div>
+        <button class="ob-sheet-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="ob-v15-intel-grid">
+        <article><span>ATMOSPHERE</span><strong class="ob-intel-weather-temp">--°C</strong><small><b class="ob-intel-weather-condition">LIVE</b> · <b class="ob-intel-weather-wind">-- KT</b></small></article>
+        <article><span>POWER · MODEL</span><strong><b class="ob-intel-power-value">--</b> MW</strong><small>Estimated island demand</small></article>
+        <article><span>OCEAN VIEW</span><strong class="ob-v15-ocean-state">SCANNING</strong><small class="ob-v15-visible-layers">AUTOMATIC DETAIL</small></article>
+      </div>
+      <div class="ob-v15-feed"><span>LIVE INTELLIGENCE</span><div class="ob-v15-feed-text">Targets and habitats appear automatically as they become relevant.</div></div>
+    </section>
+
+    <section class="ob-entity-inspector" aria-label="Feature intelligence">
+      <div class="ob-sheet-handle"></div>
+      <div class="ob-entity-head">
+        <div class="ob-entity-icon"><img alt="" /></div>
+        <div class="ob-entity-head-copy"><span class="ob-entity-class">TARGET</span><strong class="ob-entity-title">ENTITY</strong><small class="ob-identify-counter">IDENTIFIED FEATURE</small></div>
+        <button class="ob-entity-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="ob-identify-switcher"></div>
+      <div class="ob-entity-grid"></div>
+    </section>
+
+    <nav class="ob-mobile-dock ob-v15-dock" aria-label="Ocean Brain controls">
+      <button class="ob-dock-button ob-center-button" type="button"><span class="ob-dock-icon">⌖</span><span>FOCUS</span></button>
+      <div class="ob-live-pill ob-v15-live"><i></i><span>WORLD LIVE</span></div>
+      <button class="ob-dock-button ob-intel-button" type="button"><span class="ob-dock-icon">◈</span><span>INTEL</span></button>
+    </nav>
+  `;
+  document.body.appendChild(shell);
+
+  installEntityInspector(viewer, shell);
+  const custom = createCustomLiveControllers(viewer, mapState.tileset);
+  const loadedOcean = new Set<string>();
+  const oceanVisibility = new Map<string, boolean>();
+  const liveVisibility = new Map<string, boolean>();
+  const oceanOpacity: Record<string, number> = {
+    'bermuda-coral-reef-type': 0.42,
+    'bermuda-seagrass': 0.68,
+    'bermuda-shelf': 0.22,
+    'bermuda-slope': 0.16,
+    'bermuda-territorial-seas': 0.34,
+    'bermuda-subsea-cables': 0.78,
+    'bermuda-eez': 0.16,
+    'bermuda-seamounts': 0.72,
+  };
+
+  const closeSheets = () => shell.classList.remove('intel-open', 'entity-open');
+  shell.querySelector<HTMLButtonElement>('.ob-intel-button')?.addEventListener('click', () => shell.classList.toggle('intel-open'));
+  shell.querySelector<HTMLButtonElement>('.ob-sheet-close')?.addEventListener('click', closeSheets);
+  shell.querySelector<HTMLButtonElement>('.ob-sheet-scrim')?.addEventListener('click', closeSheets);
+  shell.querySelector<HTMLButtonElement>('.ob-center-button')?.addEventListener('click', () => focusBermuda(viewer, 0.8, photoreal3D));
+
+  const setText = (selector: string, value: string) => {
+    const node = shell.querySelector<HTMLElement>(selector);
+    if (node) node.textContent = value;
+  };
+
+  // Wind is represented as a subtle moving vector field in screen space instead of map arrows.
+  const windCanvas = shell.querySelector<HTMLCanvasElement>('.ob-wind-field');
+  const ctx = windCanvas?.getContext('2d') || null;
+  let windSpeed = 0;
+  let windDirection = 0;
+  let particles: Array<{x:number;y:number;life:number;seed:number}> = [];
+  const resetWindCanvas = () => {
+    if (!windCanvas || !ctx) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    windCanvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+    windCanvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+    windCanvas.style.width = `${window.innerWidth}px`;
+    windCanvas.style.height = `${window.innerHeight}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    particles = Array.from({length: 26}, (_, i) => ({ x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, life: Math.random(), seed: i/26 }));
+  };
+  resetWindCanvas();
+  window.addEventListener('resize', resetWindCanvas, { passive: true });
+  window.addEventListener('oceanbrain:wind', ((event: Event) => {
+    const detail = (event as CustomEvent).detail || {};
+    windSpeed = Number(detail.speed) || 0;
+    windDirection = Number(detail.direction) || 0;
+    setText('.ob-v15-wind', `${Math.round(windSpeed)}KT`);
+  }) as EventListener);
+  const animateWind = () => {
+    if (!windCanvas || !ctx) return;
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    if (windSpeed > 0) {
+      const bearing = Cesium.Math.toRadians((windDirection + 180) % 360);
+      const dx = Math.sin(bearing);
+      const dy = -Math.cos(bearing);
+      const velocity = Math.max(0.3, Math.min(1.6, windSpeed / 12));
+      for (const p of particles) {
+        p.x += dx * velocity;
+        p.y += dy * velocity;
+        p.life += 0.006 * velocity;
+        if (p.x < -30 || p.x > window.innerWidth + 30 || p.y < -30 || p.y > window.innerHeight + 30 || p.life > 1) {
+          p.x = Math.random()*window.innerWidth;
+          p.y = Math.random()*window.innerHeight;
+          p.life = 0;
+        }
+        const alpha = Math.sin(Math.PI * p.life) * 0.22;
+        const len = 8 + velocity * 12 + p.seed * 5;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - dx * len, p.y - dy * len);
+        ctx.strokeStyle = `rgba(111,220,255,${alpha.toFixed(3)})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+    requestAnimationFrame(animateWind);
+  };
+  requestAnimationFrame(animateWind);
+
+  const ensureLive = async (id: string, visible = true) => {
+    const controller = custom.get(id);
+    if (!controller) return;
+    if (!liveVisibility.has(id)) {
+      await controller.enable().catch(() => {});
+      liveVisibility.set(id, true);
+    }
+    await controller.setVisible?.(visible);
+    liveVisibility.set(id, visible);
+  };
+
+  const ensureOcean = async (id: string, visible: boolean) => {
+    try {
+      if (!loadedOcean.has(id) && visible) {
+        await dataManager.setEnabled(id, true, { origin: 'programmatic' });
+        loadedOcean.add(id);
+        const module = dataManager?.layers?.get?.(id)?.module;
+        if (Number.isFinite(oceanOpacity[id])) module?.setOpacity?.(oceanOpacity[id]);
+        module?.setStyleStrength?.(id === 'bermuda-subsea-cables' ? 2 : 1);
+      }
+      if (!loadedOcean.has(id)) return;
+      const module = dataManager?.layers?.get?.(id)?.module;
+      if (oceanVisibility.get(id) !== visible) module?.setVisible?.(visible);
+      oceanVisibility.set(id, visible);
+    } catch (error) {
+      console.warn(`[Ocean Brain auto:${id}]`, error);
+    }
+  };
+
+  let semanticBusy = false;
+  let lastBand = '';
+  const updateSemanticWorld = async () => {
+    if (semanticBusy) return;
+    semanticBusy = true;
+    try {
+      const km = Math.max(0, Number(viewer.camera?.positionCartographic?.height || 0) / 1000);
+      setText('.ob-v15-alt', km >= 100 ? `${Math.round(km)}K` : `${km.toFixed(0)}K`);
+      let band = 'ISLAND';
+      let context = 'REEFS · SHELF · LIVE TARGETS';
+      const desired: Record<string, boolean> = {
+        'bermuda-coral-reef-type': km <= 95,
+        'bermuda-seagrass': km <= 22,
+        'bermuda-shelf': km <= 165,
+        'bermuda-slope': km >= 70 && km <= 360,
+        'bermuda-territorial-seas': km >= 35 && km <= 230,
+        'bermuda-subsea-cables': km <= 125,
+        'bermuda-eez': km >= 180,
+        'bermuda-seamounts': km >= 230,
+      };
+      if (km <= 22) { band = 'LOCAL'; context = 'HABITAT DETAIL · TARGETS'; }
+      else if (km > 95 && km < 230) { band = 'REGIONAL'; context = 'SHELF · SLOPE · TERRITORIAL SEA'; }
+      else if (km >= 230) { band = 'OCEAN'; context = 'EEZ · SEAMOUNTS · REGIONAL TARGETS'; }
+      if (band !== lastBand) {
+        setText('.ob-v15-ocean-state', band);
+        setText('.ob-v15-context-text', context);
+        setText('.ob-v15-visible-layers', `AUTO DETAIL · ${Math.round(km)} KM`);
+        lastBand = band;
+      }
+      await Promise.all(Object.entries(desired).map(([id, visible]) => ensureOcean(id, visible)));
+    } finally {
+      semanticBusy = false;
+    }
+  };
+
+  const refreshHud = () => {
+    const air = custom.get('flights')?.getStatus();
+    const sea = custom.get('vessels')?.getStatus();
+    const wind = custom.get('wind')?.getStatus();
+    setText('.ob-v15-air', air?.state === 'live' || air?.state === 'empty' ? String(air.count ?? 0) : '…');
+    setText('.ob-v15-sea', sea?.state === 'live' || sea?.state === 'empty' ? String(sea.count ?? 0) : '…');
+    if (wind?.state === 'live' && wind.text) setText('.ob-v15-wind', wind.text.split(' · ')[0].replace(' ', ''));
+    const parts: string[] = [];
+    if (air?.state === 'live' && (air.count || 0) > 0) parts.push(`${air.count} AIR CONTACT${air.count === 1 ? '' : 'S'}`);
+    if (sea?.state === 'live' && (sea.count || 0) > 0) parts.push(`${sea.count} SEA CONTACT${sea.count === 1 ? '' : 'S'}`);
+    if (!parts.length) parts.push('NO ACTIVE TRAFFIC IN VIEW');
+    setText('.ob-v15-contact-line', parts.join(' · '));
+  };
+
+  // Start the world model automatically. Failed feeds stay silent instead of becoming UI clutter.
+  void Promise.all([
+    ensureLive('flights', true),
+    ensureLive('vessels', true),
+    ensureLive('wind', true),
+  ]).then(refreshHud);
+  void updateSemanticWorld();
+  viewer.camera.moveEnd.addEventListener(() => { void updateSemanticWorld(); refreshHud(); });
+  window.setInterval(refreshHud, 2500);
+  void refreshTelemetry(shell);
+  window.setInterval(() => { void refreshTelemetry(shell); }, 60_000);
+
+  return shell;
+}
+
 async function start() {
   applyOceanBrainBrand();
 
@@ -1735,7 +1960,7 @@ async function start() {
 
   const photoreal3D = Boolean(activeTileset);
   configureRenderQuality(viewer, activeTileset);
-  const mobileShell = installMobileExperience(components, {
+  const mobileShell = installMobileExperienceV15(components, {
     tileset: activeTileset,
     errorCode: threeDErrorCode,
   });

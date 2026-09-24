@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const frames = raw.slice(-8).map((frame) => ({
       path: String(frame?.path || ''),
       time: new Date(Number(frame?.time) * 1000).toISOString(),
-    })).filter((frame) => /^\/v2\/radar\/\d+$/.test(frame.path));
+    })).filter((frame) => /^\/v2\/radar\/[A-Za-z0-9_-]{6,64}$/.test(frame.path));
     if (host !== 'https://tilecache.rainviewer.com' || !frames.length)
       return res.status(502).json({ error: 'Radar manifest malformed' });
     const latest = frames.at(-1);
