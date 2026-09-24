@@ -720,3 +720,40 @@
 
   .ob-scene-stats { margin-bottom: 10px; }
 }
+
+/* v9 live-feed truth states: an enabled button no longer implies data arrived. */
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='loading'] .ob-layer-copy small {
+  color: rgba(255, 226, 128, .82);
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='live'] .ob-layer-copy small {
+  color: var(--layer-color);
+  opacity: .92;
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='empty'] .ob-layer-copy small {
+  color: rgba(184, 220, 229, .66);
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='error'] .ob-layer-copy small {
+  color: rgba(255, 135, 135, .92);
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='loading']::before,
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='live']::before,
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='empty']::before {
+  position: absolute;
+  right: 7px;
+  top: 6px;
+  z-index: 2;
+  font: 700 5.2px/1 'JetBrains Mono', monospace;
+  letter-spacing: .11em;
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='loading']::before {
+  content: 'LINK';
+  color: rgba(255, 226, 128, .72);
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='live']::before {
+  content: 'LIVE';
+  color: var(--layer-color);
+}
+.ocean-brain-mobile .ob-layer-toggle[data-feed-state='empty']::before {
+  content: 'CLEAR';
+  color: rgba(184, 220, 229, .58);
+}

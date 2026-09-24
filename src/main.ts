@@ -43,7 +43,7 @@ type TelemetryPayload = {
 
 const LIVE_LAYER_DEFINITIONS: readonly MobileLayerDefinition[] = Object.freeze([
   { id: 'vessels', label: 'Ships', glyph: '◆', category: 'live', color: '#4fffc0', subtitle: 'AIS vessel traffic' },
-  { id: 'flights', label: 'Aircraft', glyph: '✈', category: 'live', color: '#ffbd66', subtitle: 'OpenSky air traffic' },
+  { id: 'flights', label: 'Aircraft', glyph: '✈', category: 'live', color: '#ffbd66', subtitle: 'ADSB.lol air traffic' },
   { id: 'wind', label: 'Wind', glyph: '≈', category: 'live', color: '#66b9ff', subtitle: 'Atmospheric flow' },
   { id: 'weather-radar', label: 'Radar', glyph: '◌', category: 'live', color: '#4fe0ff', subtitle: 'Precipitation radar' },
   { id: 'weather-satellite', label: 'Clouds', glyph: '☁', category: 'live', color: '#c1d4ff', subtitle: 'Satellite cloud field' },
@@ -197,11 +197,274 @@ function focusBermuda(viewer: any, duration = 1.15, photoreal3D = HAS_3D_CREDENT
 
 function renderLayerButtons(definitions: readonly MobileLayerDefinition[]) {
   return definitions.map((layer) => `
-    <button class="ob-layer-toggle" type="button" data-layer-id="${layer.id}" data-active="${DEFAULT_OCEAN_BRAIN_LAYERS.includes(layer.id) ? 'true' : 'false'}" style="--layer-color:${layer.color}">
+    <button class="ob-layer-toggle" type="button" data-layer-id="${layer.id}" data-active="${DEFAULT_OCEAN_BRAIN_LAYERS.includes(layer.id) ? 'true' : 'false'}" data-feed-state="off" style="--layer-color:${layer.color}">
       <span class="ob-layer-glyph">${layer.glyph}</span>
-      <span class="ob-layer-copy"><strong>${layer.label}</strong><small>${layer.subtitle}</small></span>
+      <span class="ob-layer-copy"><strong>${layer.label}</strong><small data-default-copy="${layer.subtitle}">${layer.subtitle}</small></span>
     </button>
   `).join('');
+}
+
+
+
+type LiveFeedState = 'off' | 'loading' | 'live' | 'empty' | 'error';
+type LiveFeedStatus = { state: LiveFeedState; text: string; count?: number; error?: string };
+type CustomLayerController = {
+  enable: () => Promise<LiveFeedStatus>;
+  disable: () => Promise<void>;
+  getStatus: () => LiveFeedStatus;
+};
+
+function layerImageryCollection(viewer: any, tileset: any) {
+  return tileset?.imageryLayers || viewer.imageryLayers;
+}
+
+function shortFeedError(value: unknown) {
+  const raw = String((value as any)?.message || value || 'SOURCE OFFLINE')
+    .replace(/^Error:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (/404|not found/i.test(raw)) return 'SOURCE NOT CONNECTED';
+  if (/401|403|auth|credential|token/i.test(raw)) return 'AUTH REQUIRED';
+  if (/429|rate/i.test(raw)) return 'RATE LIMITED';
+  if (/network|fetch|timeout|timed out/i.test(raw)) return 'SOURCE OFFLINE';
+  return raw.length > 30 ? `${raw.slice(0, 27)}…` : raw.toUpperCase();
+}
+
+function setLayerButtonStatus(button: HTMLButtonElement, status: LiveFeedStatus) {
+  button.dataset.feedState = status.state;
+  const copy = button.querySelector<HTMLElement>('small');
+  if (!copy) return;
+  if (status.state === 'off') {
+    copy.textContent = copy.dataset.defaultCopy || '';
+    button.removeAttribute('data-error');
+    return;
+  }
+  copy.textContent = status.text;
+  if (status.state === 'error') button.dataset.error = 'true';
+  else button.removeAttribute('data-error');
+}
+
+function createRadarController(viewer: any, tileset: any): CustomLayerController {
+  let layer: any = null;
+  let status: LiveFeedStatus = { state: 'off', text: 'Precipitation radar' };
+  const collection = layerImageryCollection(viewer, tileset);
+  const remove = () => {
+    if (layer && collection?.contains?.(layer)) collection.remove(layer, true);
+    else if (layer && !layer.isDestroyed?.()) layer.destroy?.();
+    layer = null;
+  };
+  return {
+    async enable() {
+      status = { state: 'loading', text: 'CONNECTING RADAR…' };
+      remove();
+      try {
+        const response = await fetch('/api/radar-manifest', { cache: 'no-store', headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`Radar HTTP ${response.status}`);
+        const manifest = await response.json();
+        if (!manifest?.host || !manifest?.path || !manifest?.time) throw new Error('Radar manifest unavailable');
+        const provider = new Cesium.UrlTemplateImageryProvider({
+          url: `${manifest.host}${manifest.path}/256/{z}/{x}/{y}/2/1_1.png`,
+          tilingScheme: new Cesium.WebMercatorTilingScheme(),
+          rectangle: Cesium.Rectangle.fromDegrees(-72, 24, -56, 42),
+          tileWidth: 256,
+          tileHeight: 256,
+          maximumLevel: 7,
+          enablePickFeatures: false,
+          credit: new Cesium.Credit('Weather radar · RainViewer', false),
+        });
+        provider.errorEvent?.addEventListener?.((event: any) => {
+          status = { state: 'error', text: shortFeedError(event?.error || event) };
+        });
+        layer = new Cesium.ImageryLayer(provider, { alpha: 0.78, show: true });
+        collection.add(layer);
+        const stamp = new Date(manifest.time).toISOString().slice(11, 16) + 'Z';
+        status = { state: 'live', text: `RADAR LIVE · ${stamp}` };
+        viewer.scene.requestRender?.();
+        return status;
+      } catch (error) {
+        remove();
+        status = { state: 'error', text: shortFeedError(error), error: String(error) };
+        return status;
+      }
+    },
+    async disable() {
+      remove();
+      status = { state: 'off', text: 'Precipitation radar' };
+      viewer.scene.requestRender?.();
+    },
+    getStatus: () => status,
+  };
+}
+
+function createWmsController(
+  viewer: any,
+  tileset: any,
+  kind: 'clouds' | 'lightning',
+): CustomLayerController {
+  let layer: any = null;
+  let status: LiveFeedStatus = {
+    state: 'off',
+    text: kind === 'clouds' ? 'Satellite cloud field' : 'Lightning activity',
+  };
+  const collection = layerImageryCollection(viewer, tileset);
+  const remove = () => {
+    if (layer && collection?.contains?.(layer)) collection.remove(layer, true);
+    else if (layer && !layer.isDestroyed?.()) layer.destroy?.();
+    layer = null;
+  };
+  return {
+    async enable() {
+      status = { state: 'loading', text: kind === 'clouds' ? 'CONNECTING GOES…' : 'CONNECTING LIGHTNING…' };
+      remove();
+      try {
+        const provider = new Cesium.WebMapServiceImageryProvider({
+          url: `/api/weather-wms?kind=${kind}`,
+          layers: 'ocean-brain',
+          rectangle: Cesium.Rectangle.fromDegrees(-105, 5, -20, 62),
+          enablePickFeatures: false,
+          maximumLevel: 6,
+          parameters: {
+            transparent: true,
+            format: 'image/png',
+            version: '1.3.0',
+          },
+          credit: new Cesium.Credit(kind === 'clouds' ? 'NOAA nowCOAST · GOES' : 'NOAA nowCOAST · lightning', false),
+        });
+        provider.errorEvent?.addEventListener?.((event: any) => {
+          status = { state: 'error', text: shortFeedError(event?.error || event) };
+        });
+        layer = new Cesium.ImageryLayer(provider, { alpha: kind === 'clouds' ? 0.52 : 0.9, show: true });
+        collection.add(layer);
+        status = { state: 'live', text: kind === 'clouds' ? 'GOES CLOUDS · LIVE' : 'LIGHTNING · LIVE' };
+        viewer.scene.requestRender?.();
+        return status;
+      } catch (error) {
+        remove();
+        status = { state: 'error', text: shortFeedError(error), error: String(error) };
+        return status;
+      }
+    },
+    async disable() {
+      remove();
+      status = { state: 'off', text: kind === 'clouds' ? 'Satellite cloud field' : 'Lightning activity' };
+      viewer.scene.requestRender?.();
+    },
+    getStatus: () => status,
+  };
+}
+
+function destinationOffset(lon: number, lat: number, bearingDeg: number, distanceDeg: number) {
+  const bearing = Cesium.Math.toRadians(bearingDeg);
+  const latOffset = Math.cos(bearing) * distanceDeg;
+  const lonOffset = Math.sin(bearing) * distanceDeg / Math.max(0.3, Math.cos(Cesium.Math.toRadians(lat)));
+  return { longitude: lon + lonOffset, latitude: lat + latOffset };
+}
+
+function createWindController(viewer: any): CustomLayerController {
+  let dataSource: any = null;
+  let status: LiveFeedStatus = { state: 'off', text: 'Atmospheric flow' };
+  const remove = () => {
+    if (dataSource) viewer.dataSources.remove(dataSource, true);
+    dataSource = null;
+  };
+  return {
+    async enable() {
+      status = { state: 'loading', text: 'SAMPLING WIND…' };
+      remove();
+      try {
+        const response = await fetch('/api/telemetry', { cache: 'no-store', headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`Wind HTTP ${response.status}`);
+        const payload = await response.json();
+        const speedRaw = payload?.weather?.windKn;
+        const directionRaw = payload?.weather?.windDirectionDeg;
+        const speed = speedRaw === null || speedRaw === undefined ? NaN : Number(speedRaw);
+        const direction = directionRaw === null || directionRaw === undefined ? NaN : Number(directionRaw);
+        if (!Number.isFinite(speed) || !Number.isFinite(direction)) throw new Error('Wind direction unavailable');
+        const flowBearing = (direction + 180) % 360;
+        const length = Math.max(0.035, Math.min(0.095, 0.035 + speed * 0.0022));
+        const color = Cesium.Color.fromCssColorString('#66b9ff').withAlpha(0.88);
+        const source = new Cesium.CustomDataSource('ocean-brain-wind');
+        for (let row = 0; row < 6; row++) {
+          for (let col = 0; col < 7; col++) {
+            const latitude = 31.92 + row * 0.14 + (col % 2) * 0.03;
+            const longitude = -65.28 + col * 0.17;
+            const end = destinationOffset(longitude, latitude, flowBearing, length);
+            source.entities.add({
+              polyline: {
+                positions: [
+                  Cesium.Cartesian3.fromDegrees(longitude, latitude, 1000),
+                  Cesium.Cartesian3.fromDegrees(end.longitude, end.latitude, 1000),
+                ],
+                width: 2.5,
+                material: new Cesium.PolylineArrowMaterialProperty(color),
+                arcType: Cesium.ArcType.NONE,
+              },
+            });
+          }
+        }
+        source.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(-64.83, 32.62, 1500),
+          label: {
+            text: `WIND ${Math.round(speed)} KT  ${Math.round(direction)}°`,
+            font: '600 13px monospace',
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK.withAlpha(0.9),
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            showBackground: true,
+            backgroundColor: Cesium.Color.fromCssColorString('#06151d').withAlpha(0.82),
+            pixelOffset: new Cesium.Cartesian2(0, -12),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        });
+        dataSource = source;
+        await viewer.dataSources.add(source);
+        status = { state: 'live', text: `${Math.round(speed)} KT · ${Math.round(direction)}°` };
+        viewer.scene.requestRender?.();
+        return status;
+      } catch (error) {
+        remove();
+        status = { state: 'error', text: shortFeedError(error), error: String(error) };
+        return status;
+      }
+    },
+    async disable() {
+      remove();
+      status = { state: 'off', text: 'Atmospheric flow' };
+      viewer.scene.requestRender?.();
+    },
+    getStatus: () => status,
+  };
+}
+
+function createCustomLiveControllers(viewer: any, tileset: any) {
+  return new Map<string, CustomLayerController>([
+    ['weather-radar', createRadarController(viewer, tileset)],
+    ['wind', createWindController(viewer)],
+    ['weather-satellite', createWmsController(viewer, tileset, 'clouds')],
+    ['weather-lightning', createWmsController(viewer, tileset, 'lightning')],
+  ]);
+}
+
+function nativeLayerStatus(dataManager: any, id: string): LiveFeedStatus {
+  const entry = dataManager?.layers?.get?.(id);
+  if (!entry?.enabled) return { state: 'off', text: '' };
+  let stats: any = {};
+  try {
+    stats = entry.module?.getStats?.() || {};
+  } catch (error) {
+    return { state: 'error', text: shortFeedError(error), error: String(error) };
+  }
+  const error = stats.error || stats.lastError || stats.managerRefreshError;
+  if (error) return { state: 'error', text: shortFeedError(error), error: String(error) };
+  if (stats.loading || stats.refreshing || stats.firstConnectPhase === 'loading')
+    return { state: 'loading', text: 'CONNECTING…' };
+  const rawCount = stats.count ?? stats.acceptedRowCount ?? stats.visibleCount ?? stats.renderedCount ?? 0;
+  const count = Number.isFinite(Number(rawCount)) ? Number(rawCount) : 0;
+  if (count > 0) return { state: 'live', text: `${count} CONTACT${count === 1 ? '' : 'S'} · LIVE`, count };
+  if (id === 'weather-cyclones' && stats.lastUpdate) return { state: 'live', text: 'NO ACTIVE STORMS', count: 0 };
+  if (stats.lastUpdate || stats.fetchedAt || stats.source) return { state: 'empty', text: '0 CONTACTS · LIVE', count: 0 };
+  return { state: 'loading', text: 'WAITING FOR DATA…', count: 0 };
 }
 
 function formatCameraAltitude(viewer: any) {
@@ -373,6 +636,7 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
 
   const viewer = components.scene.viewer;
   const dataManager = components.data.dataManager;
+  const customLiveControllers = createCustomLiveControllers(viewer, mapState.tileset);
   const layerButtons = Array.from(shell.querySelectorAll<HTMLButtonElement>('.ob-layer-toggle'));
   const updateActiveCount = () => {
     const count = layerButtons.filter((button) => button.dataset.active === 'true').length;
@@ -404,39 +668,72 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
     button.addEventListener('click', () => focusBermuda(viewer, 0.9, photoreal3D));
   });
 
+  const refreshLiveButtonStates = () => {
+    for (const definition of LIVE_LAYER_DEFINITIONS) {
+      const button = shell.querySelector<HTMLButtonElement>(`.ob-layer-toggle[data-layer-id="${definition.id}"]`);
+      if (!button || button.dataset.active !== 'true') continue;
+      const custom = customLiveControllers.get(definition.id);
+      setLayerButtonStatus(button, custom ? custom.getStatus() : nativeLayerStatus(dataManager, definition.id));
+    }
+  };
+
   for (const button of layerButtons) {
     button.addEventListener('click', async () => {
       const id = button.dataset.layerId;
       if (!id || button.disabled) return;
       const next = button.dataset.active !== 'true';
       button.disabled = true;
+      const definition = MOBILE_LAYER_DEFINITIONS.find((layer) => layer.id === id);
+      const custom = customLiveControllers.get(id);
+      if (definition?.category === 'live' && next)
+        setLayerButtonStatus(button, { state: 'loading', text: 'CONNECTING…' });
       try {
-        const changed = await dataManager.setEnabled(id, next, { origin: 'user' });
-        if (changed === false) throw new Error(`${id} lifecycle rejected`);
+        if (custom) {
+          if (next) {
+            const state = await custom.enable();
+            if (state.state === 'error') throw new Error(state.error || state.text);
+          } else {
+            await custom.disable();
+          }
+        } else {
+          const changed = await dataManager.setEnabled(id, next, { origin: 'user' });
+          if (changed === false) throw new Error(`${id} lifecycle rejected`);
+        }
         button.dataset.active = String(next);
         button.removeAttribute('data-error');
-        if (next) {
-          const definition = MOBILE_LAYER_DEFINITIONS.find((layer) => layer.id === id);
-          if (definition?.camera) flyToPreset(viewer, definition.camera);
-        }
+        if (!next) setLayerButtonStatus(button, { state: 'off', text: definition?.subtitle || '' });
+        else if (definition?.category === 'live')
+          setLayerButtonStatus(button, custom ? custom.getStatus() : nativeLayerStatus(dataManager, id));
+        // IMPORTANT: layer toggles never move the camera. The user owns the view;
+        // the dedicated Focus control is the only automatic Bermuda recenter action.
       } catch (error) {
         button.dataset.active = 'false';
         button.dataset.error = 'true';
+        if (custom) await custom.disable().catch(() => {});
+        setLayerButtonStatus(button, { state: 'error', text: shortFeedError(error), error: String(error) });
         console.warn(`[Ocean Brain mobile:${id}]`, error);
       } finally {
         button.disabled = false;
         updateActiveCount();
+        window.setTimeout(refreshLiveButtonStates, 900);
       }
     });
   }
 
   shell.querySelector<HTMLButtonElement>('.ob-clear-layers')?.addEventListener('click', async () => {
     await Promise.allSettled(
-      MOBILE_LAYER_DEFINITIONS.map((layer) =>
-        dataManager.setEnabled(layer.id, false, { origin: 'programmatic' }),
-      ),
+      MOBILE_LAYER_DEFINITIONS.map((layer) => {
+        const custom = customLiveControllers.get(layer.id);
+        return custom
+          ? custom.disable()
+          : dataManager.setEnabled(layer.id, false, { origin: 'programmatic' });
+      }),
     );
-    layerButtons.forEach((button) => { button.dataset.active = 'false'; });
+    layerButtons.forEach((button) => {
+      button.dataset.active = 'false';
+      const definition = MOBILE_LAYER_DEFINITIONS.find((layer) => layer.id === button.dataset.layerId);
+      setLayerButtonStatus(button, { state: 'off', text: definition?.subtitle || '' });
+    });
     updateActiveCount();
   });
 
@@ -445,6 +742,7 @@ function installMobileExperience(components: any, mapState: { tileset: any | nul
   viewer.camera.moveEnd.addEventListener(updateAltitude);
   void refreshTelemetry(shell);
   window.setInterval(() => { void refreshTelemetry(shell); }, 60_000);
+  window.setInterval(refreshLiveButtonStates, 2_500);
   return shell;
 }
 

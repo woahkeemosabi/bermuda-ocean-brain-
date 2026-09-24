@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const url = new URL('https://api.open-meteo.com/v1/forecast');
     url.searchParams.set('latitude', String(LAT));
     url.searchParams.set('longitude', String(LON));
-    url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m');
+    url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m');
     url.searchParams.set('wind_speed_unit', 'kn');
     url.searchParams.set('timezone', 'Atlantic/Bermuda');
     const response = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -60,6 +60,8 @@ export default async function handler(req, res) {
       weather = {
         temperatureC: Number(current.temperature_2m),
         windKn: Number(current.wind_speed_10m),
+        windDirectionDeg: Number(current.wind_direction_10m),
+        windGustKn: Number(current.wind_gusts_10m),
         humidityPct: Number(current.relative_humidity_2m),
         precipitationMm: Number(current.precipitation),
         condition: conditionFromCode(Number(current.weather_code)),
