@@ -47,20 +47,30 @@ function aircraftKind(typeCode: string, description: string, operator: string) {
   return 'airliner';
 }
 
-function aircraftIcon(kind: string, color: string) {
-  let body = '';
-  if (kind === 'helicopter') {
-    body = `<g fill="none" stroke="${color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="28" cy="29" rx="9" ry="5.5"/><path d="M37 29h11M47 25v8M19 29H8M28 23V11M12 11h32"/></g>`;
-  } else if (kind === 'prop') {
-    body = `<g fill="${color}"><path d="M27 5h4l2 18 17 6v4l-17-2-3 16 8 5v2l-9-2-10 2v-2l8-5-3-16-18 2v-4l18-6z"/><circle cx="29" cy="7" r="4" fill="none" stroke="${color}" stroke-width="1.8"/></g>`;
-  } else if (kind === 'bizjet') {
-    body = `<path fill="${color}" d="M27 4h4l3 18 15 5v4l-15-2-3 17 8 4v3l-10-2-10 2v-3l8-4-3-17-15 2v-4l15-5z"/>`;
-  } else if (kind === 'cargo') {
-    body = `<path fill="${color}" d="M26 4h6l4 18 18 6v5l-18-2-4 15 10 6v3l-13-3-13 3v-3l10-6-4-15-19 2v-5l19-6z"/>`;
+function aircraftIcon(typeCode: string, kind: string) {
+  const code = typeCode.toUpperCase();
+  const family = /^(A33|A34|A35|B74|B76|B77|B78)/.test(code)
+    ? 'widebody'
+    : /^(E17|E19|BCS|CRJ|A22)/.test(code)
+      ? 'regional'
+      : kind;
+
+  let silhouette = '';
+  if (family === 'helicopter') {
+    silhouette = `<g fill="none" stroke="#f7fbff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="32" cy="34" rx="10" ry="6" fill="#f7fbff" stroke="#07111a" stroke-width="1.2"/><path d="M42 34h13M54 29v10M22 34H9M32 28V13M15 13h34"/><path d="M24 40l-5 8M40 40l5 8"/></g>`;
+  } else if (family === 'prop') {
+    silhouette = `<g fill="#f7fbff" stroke="#07111a" stroke-width="1.1" stroke-linejoin="round"><path d="M29 5c1-2 5-2 6 0l2 18 20 8v4l-20-3-2 17 9 7v3l-12-4-12 4v-3l9-7-2-17-20 3v-4l20-8 2-18z"/><circle cx="32" cy="11" r="7" fill="none" stroke="#f7fbff" stroke-width="1.6"/><path d="M25 11h14M32 4v14" fill="none" stroke="#f7fbff" stroke-width="1.3"/></g>`;
+  } else if (family === 'bizjet') {
+    silhouette = `<path d="M30 4c1-2 3-2 4 0l3 21 19 7v4l-19-3-3 18 9 6v3l-11-4-11 4v-3l9-6-3-18-19 3v-4l19-7 3-21z" fill="#f7fbff" stroke="#07111a" stroke-width="1.2" stroke-linejoin="round"/>`;
+  } else if (family === 'widebody' || family === 'cargo') {
+    silhouette = `<path d="M29 4c1-2 5-2 6 0l4 20 22 8v5l-22-3-4 17 11 7v3l-14-4-14 4v-3l11-7-4-17-22 3v-5l22-8 4-20z" fill="#f7fbff" stroke="#07111a" stroke-width="1.25" stroke-linejoin="round"/><path d="M29 14h6" stroke="#8fdfff" stroke-width="1.1" stroke-linecap="round"/>`;
+  } else if (family === 'regional') {
+    silhouette = `<path d="M30 4c1-2 3-2 4 0l3 20 18 7v4l-18-3-3 18 9 6v3l-11-4-11 4v-3l9-6-3-18-18 3v-4l18-7 3-20z" fill="#f7fbff" stroke="#07111a" stroke-width="1.15" stroke-linejoin="round"/><path d="M30 12h4" stroke="#8fdfff" stroke-width="1" stroke-linecap="round"/>`;
   } else {
-    body = `<path fill="${color}" d="M27 4h5l4 18 17 6v4l-17-2-4 16 10 6v3l-13-3-13 3v-3l10-6-4-16-18 2v-4l18-6z"/>`;
+    silhouette = `<path d="M29 4c1-2 5-2 6 0l3 20 21 8v4l-21-3-3 18 10 7v3l-13-4-13 4v-3l10-7-3-18-21 3v-4l21-8 3-20z" fill="#f7fbff" stroke="#07111a" stroke-width="1.2" stroke-linejoin="round"/><path d="M29 12h6" stroke="#8fdfff" stroke-width="1" stroke-linecap="round"/>`;
   }
-  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><defs><filter id="g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g filter="url(#g)">${body}</g></svg>`);
+
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="66" height="66" viewBox="0 0 64 64"><defs><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#00121f" flood-opacity="0.9"/><feDropShadow dx="0" dy="0" stdDeviation="1.2" flood-color="#8fdfff" flood-opacity="0.32"/></filter></defs><g filter="url(#s)">${silhouette}</g></svg>`);
 }
 
 function vesselKind(row: any) {
@@ -137,7 +147,6 @@ function hudShell() {
       <div class="scan-metric"><small>ALT</small><strong id="alt-value">—</strong></div>
     </section>
     <div class="center-reticle" aria-hidden="true"><i></i><b></b></div>
-    <div class="world-scan" aria-hidden="true"></div>
     <div class="acquisition-toast" id="acquisition-toast">CONTACT ACQUIRED</div>
     <section class="intel-sheet glass" id="intel-sheet" aria-live="polite">
       <div class="sheet-head"><div class="sheet-icon" id="sheet-icon">◎</div><div><small id="sheet-kicker">WORLD INTELLIGENCE</small><h2 id="sheet-title">BERMUDA LIVE</h2><p id="sheet-subtitle">AUTO-CURATED SPATIAL CONTEXT</p></div><button id="sheet-close" aria-label="Close intelligence">×</button></div>
@@ -160,7 +169,7 @@ function showIntel(root: HTMLElement, intel: ContactIntel) {
   (root.querySelector('#sheet-subtitle') as HTMLElement).textContent = intel.subtitle;
   const icon = root.querySelector('#sheet-icon') as HTMLElement;
   icon.style.setProperty('--accent', intel.accent);
-  icon.textContent = intel.kind === 'aircraft' ? '✈' : intel.kind === 'vessel' ? '◆' : '◎';
+  icon.innerHTML = intel.kind === 'aircraft' ? '<span class="intel-glyph air">AIR</span>' : intel.kind === 'vessel' ? '<span class="intel-glyph sea">SEA</span>' : '<span class="intel-glyph ocean">OCEAN</span>';
   const grid = root.querySelector('#sheet-grid') as HTMLElement;
   grid.innerHTML = intel.rows.map(([k,v]) => `<div class="intel-cell"><small>${escapeHtml(k)}</small><strong>${escapeHtml(v)}</strong></div>`).join('');
 }
@@ -186,10 +195,6 @@ function focusBermuda(viewer: Cesium.Viewer, duration = 1.1) {
   });
 }
 
-function destinationOffset(lon: number, lat: number, bearingDeg: number, distanceDeg: number) {
-  const a = Cesium.Math.toRadians(bearingDeg);
-  return { lon: lon + Math.sin(a) * distanceDeg / Math.max(0.3, Math.cos(Cesium.Math.toRadians(lat))), lat: lat + Math.cos(a) * distanceDeg };
-}
 
 async function addGoogle3D(viewer: Cesium.Viewer) {
   if (!CESIUM_TOKEN) return null;
@@ -212,12 +217,12 @@ async function addGoogle3D(viewer: Cesium.Viewer) {
 }
 
 const marineDefs = [
-  { key: 'shelf', id: 'shelf', color: '#23a8e8', fill: 0.05, line: 0.48, minKm: 0, maxKm: 165, inspect: false },
-  { key: 'territorial-seas', id: 'territorial', color: '#35e6ff', fill: 0.015, line: 0.48, minKm: 30, maxKm: 230, inspect: false },
-  { key: 'coral-reef-type', id: 'coral', color: '#22f2d2', fill: 0.08, line: 0.28, minKm: 0, maxKm: 75, inspect: false },
-  { key: 'seagrass', id: 'seagrass', color: '#58ee9a', fill: 0.07, line: 0.20, minKm: 0, maxKm: 18, inspect: false },
-  { key: 'subsea-cables', id: 'cables', color: '#4dd7ff', fill: 0, line: 0.72, minKm: 0, maxKm: 120, inspect: true },
-  { key: 'slope', id: 'slope', color: '#5168ff', fill: 0.025, line: 0.20, minKm: 85, maxKm: 340, inspect: false },
+  { key: 'shelf', id: 'shelf', color: '#169fcb', fill: 0.028, line: 0, minKm: 0, maxKm: 150, inspect: false },
+  { key: 'territorial-seas', id: 'territorial', color: '#39dff2', fill: 0.006, line: 0, minKm: 24, maxKm: 190, inspect: false },
+  { key: 'coral-reef-type', id: 'coral', color: '#14d9bd', fill: 0.042, line: 0, minKm: 0, maxKm: 62, inspect: false },
+  { key: 'seagrass', id: 'seagrass', color: '#55d890', fill: 0.032, line: 0, minKm: 0, maxKm: 13, inspect: false },
+  { key: 'subsea-cables', id: 'cables', color: '#ffb55f', fill: 0, line: 0.55, minKm: 0, maxKm: 30, inspect: true },
+  { key: 'slope', id: 'slope', color: '#5067b8', fill: 0.012, line: 0, minKm: 75, maxKm: 250, inspect: false },
 ] as const;
 
 async function loadMarine(viewer: Cesium.Viewer) {
@@ -235,16 +240,17 @@ async function loadMarine(viewer: Cesium.Viewer) {
         e.properties = new Cesium.PropertyBag({ obMarine: def.id, obInspectable: def.inspect });
         if (e.polygon) {
           e.polygon.material = color.withAlpha(def.fill);
-          e.polygon.outline = true;
-          e.polygon.outlineColor = color.withAlpha(def.line);
+          e.polygon.outline = false;
           e.polygon.height = 4;
         }
         if (e.polyline) {
-          e.polyline.width = def.id === 'cables' ? 2.1 : 1.2;
-          e.polyline.material = def.id === 'cables'
-            ? new Cesium.PolylineGlowMaterialProperty({ color: color.withAlpha(0.82), glowPower: 0.13, taperPower: 0.8 })
-            : color.withAlpha(def.line);
-          e.polyline.clampToGround = true;
+          if (def.id === 'cables') {
+            e.polyline.width = 1.35;
+            e.polyline.material = color.withAlpha(0.68);
+            e.polyline.clampToGround = true;
+          } else {
+            e.show = false;
+          }
         }
         if (e.position && !e.polyline && !e.polygon) {
           e.billboard = undefined;
@@ -305,7 +311,7 @@ function installPicker(viewer: Cesium.Viewer, root: HTMLElement) {
     const p = entity.properties.getValue(Cesium.JulianDate.now()) || {};
     if (p.obKind === 'aircraft') {
       showIntel(root, {
-        kind: 'aircraft', title: p.callsign || p.registration || 'AIRCRAFT', subtitle: `${p.className || 'AIRCRAFT'} · ${p.model || p.typeCode || 'LIVE ADS-B'}`, accent: '#ffbd66',
+        kind: 'aircraft', title: p.callsign || p.registration || 'AIRCRAFT', subtitle: `${p.className || 'AIRCRAFT'} · ${p.model || p.typeCode || 'LIVE ADS-B'}`, accent: '#83dfff',
         rows: [
           ['MODEL', p.model || p.typeCode || 'Unknown'], ['REG', p.registration || '—'], ['ALTITUDE', p.altitudeFt ? `${Math.round(p.altitudeFt).toLocaleString()} FT` : '—'],
           ['SPEED', p.speedKt ? `${Math.round(p.speedKt)} KT` : '—'], ['HEADING', Number.isFinite(Number(p.heading)) ? `${Math.round(p.heading)}°` : '—'], ['OPERATOR', p.operator || '—'],
@@ -329,7 +335,6 @@ function installPicker(viewer: Cesium.Viewer, root: HTMLElement) {
 function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
   let source = new Cesium.CustomDataSource('air-contacts');
   let status: LiveContactStatus = { count: 0 };
-  const trails = new Map<string, Array<[number,number,number]>>();
   const seen = new Set<string>();
   let initial = true;
   viewer.dataSources.add(source);
@@ -357,24 +362,17 @@ function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
         const description = text(s[22]);
         const kind = aircraftKind(typeCode, description, operator);
         const model = AIR_MODELS[typeCode] || description || typeCode || 'Aircraft';
-        const colorHex = kind === 'cargo' ? '#ff9a59' : kind === 'helicopter' ? '#ffdf70' : kind === 'bizjet' ? '#ffd5a2' : '#ffbd66';
+        const colorHex = kind === 'cargo' ? '#ffad72' : kind === 'helicopter' ? '#ffd276' : '#83dfff';
         const color = Cesium.Color.fromCssColorString(colorHex);
         const id = `air:${icao || callsign}`;
         const position = Cesium.Cartesian3.fromDegrees(lon, lat, Math.max(800, altM));
         const labelSub = [typeCode || kind.toUpperCase(), speedKt ? `${Math.round(speedKt)} KT` : ''].filter(Boolean).join(' · ');
         next.entities.add({
           id, position,
-          billboard: { image: aircraftIcon(kind, colorHex), width: 44, height: 44, rotation: Cesium.Math.toRadians(-heading), alignedAxis: Cesium.Cartesian3.ZERO, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(10_000, 1.25, 500_000, 0.68), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 480_000) },
+          billboard: { image: aircraftIcon(typeCode, kind), width: 48, height: 48, rotation: Cesium.Math.toRadians(-heading), alignedAxis: Cesium.Cartesian3.ZERO, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(10_000, 1.15, 500_000, 0.72), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 480_000) },
           label: contactLabel(callsign, labelSub, color),
           properties: { obKind:'aircraft', callsign, registration, typeCode, model, className: kind === 'bizjet' ? 'BUSINESS JET' : kind === 'cargo' ? 'CARGO AIRCRAFT' : kind === 'prop' ? 'PROP / TURBOPROP' : kind === 'helicopter' ? 'HELICOPTER' : 'AIRCRAFT', altitudeFt: feetFromM(altM) ?? '', speedKt: speedKt ?? '', heading, operator },
         });
-        const tr = trails.get(id) || [];
-        tr.push([lon, lat, Math.max(800, altM)]);
-        while (tr.length > 10) tr.shift();
-        trails.set(id, tr);
-        if (tr.length > 1) next.entities.add({ id:`${id}:trail`, polyline:{ positions: tr.map(([x,y,z]) => Cesium.Cartesian3.fromDegrees(x,y,z)), width:0.9, material:new Cesium.PolylineGlowMaterialProperty({color:color.withAlpha(0.22), glowPower:0.12}), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,260_000) }});
-        const end = destinationOffset(lon, lat, heading, 0.06);
-        next.entities.add({ id:`${id}:vector`, polyline:{ positions:[position,Cesium.Cartesian3.fromDegrees(end.lon,end.lat,Math.max(800,altM))], width:0.8, material:color.withAlpha(0.14), arcType:Cesium.ArcType.NONE, distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,180_000) }});
         if (!initial && !seen.has(id)) acquisition(root, 'AIR CONTACT ACQUIRED');
         seen.add(id); count++;
       }
@@ -395,16 +393,64 @@ function createAircraftLayer(viewer: Cesium.Viewer, root: HTMLElement) {
 }
 
 function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
+  const vesselCacheKey = 'bermuda-ocean-brain:vessel-cache:v21';
+  const vesselRetainMs = 30 * 60_000;
   let source = new Cesium.CustomDataSource('sea-contacts');
   let status: LiveContactStatus = { count: 0 };
+  let feedSource = 'RECENT AIS';
   const contacts = new Map<string, any>();
   const trails = new Map<string, Array<[number,number]>>();
   const seen = new Set<string>();
   let initial = true;
   let renderTimer: number | null = null;
+  let persistTimer: number | null = null;
   let fallbackTimer: number | null = null;
   let eventSource: EventSource | null = null;
   viewer.dataSources.add(source);
+
+  function rowSeenAt(row: any) {
+    const raw = row?.last_position_UTC ?? row?.seen ?? row?.time ?? row?.timestamp;
+    const parsed = Date.parse(String(raw ?? ''));
+    if (!Number.isFinite(parsed)) return Date.now();
+    return Math.min(Date.now(), parsed);
+  }
+
+  function restoreRetainedContacts() {
+    try {
+      const raw = window.localStorage.getItem(vesselCacheKey);
+      if (!raw) return;
+      const rows = JSON.parse(raw);
+      if (!Array.isArray(rows)) return;
+      const now = Date.now();
+      for (const row of rows) {
+        const mmsi = text(row?.mmsi);
+        const lon = num(row?.lon ?? row?.longitude), lat = num(row?.lat ?? row?.latitude);
+        const seenAt = Number(row?.__seenAt ?? rowSeenAt(row));
+        if (!mmsi || lon === null || lat === null || now - seenAt > vesselRetainMs) continue;
+        contacts.set(mmsi, { ...row, __seenAt: seenAt, retained: true });
+      }
+      if (contacts.size) feedSource = 'RECENT AIS · DEVICE CACHE';
+    } catch {}
+  }
+
+  function persistContacts() {
+    persistTimer = null;
+    try {
+      const now = Date.now();
+      const rows = Array.from(contacts.values())
+        .filter(row => now - Number(row.__seenAt || 0) <= vesselRetainMs)
+        .slice(0, 400)
+        .map(row => ({ ...row }));
+      window.localStorage.setItem(vesselCacheKey, JSON.stringify(rows));
+    } catch {}
+  }
+
+  function schedulePersist() {
+    if (persistTimer !== null) return;
+    persistTimer = window.setTimeout(persistContacts, 1200);
+  }
+
+  restoreRetainedContacts();
 
   function scheduleRender() {
     if (renderTimer !== null) return;
@@ -417,7 +463,7 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
   async function renderContacts() {
     const now = Date.now();
     for (const [key, value] of contacts) {
-      if (now - Number(value.__seenAt || 0) > 8 * 60_000) contacts.delete(key);
+      if (now - Number(value.__seenAt || 0) > vesselRetainMs) contacts.delete(key);
     }
     const next = new Cesium.CustomDataSource('sea-contacts-next');
     let count = 0;
@@ -452,7 +498,7 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
     await viewer.dataSources.add(next);
     viewer.dataSources.remove(source,true);
     source = next;
-    status = { count, source: 'AISStream · Vercel' };
+    status = { count, source: feedSource };
     updateContactHud(root,null,status);
   }
 
@@ -461,20 +507,25 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
     const lon = num(row?.lon ?? row?.longitude), lat = num(row?.lat ?? row?.latitude);
     if (!mmsi || lon === null || lat === null) return;
     const previous = contacts.get(mmsi) || {};
-    contacts.set(mmsi, { ...previous, ...row, __seenAt: Date.now() });
+    const seenAt = rowSeenAt(row);
+    contacts.set(mmsi, { ...previous, ...row, __seenAt: seenAt });
     scheduleRender();
+    schedulePersist();
   }
 
   async function pollSnapshot() {
     try {
-      const r = await fetch('/api/ais-live?maxRows=1200&sampleMs=18000', { cache: 'no-store' });
+      const r = await fetch('/api/ais-live?maxRows=1200', { cache: 'no-store' });
       const payload = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(payload?.error || `HTTP ${r.status}`);
       const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+      feedSource = text(payload?.source) || feedSource;
       rows.forEach(absorb);
       if (!rows.length && contacts.size === 0) {
-        status = { count: 0, source: payload?.source || 'AISStream', error: payload?.error || 'No AIS sample yet' };
+        status = { count: 0, source: feedSource || 'AIS COVERAGE SCAN' };
         updateContactHud(root,null,status);
+      } else if (contacts.size > 0) {
+        scheduleRender();
       }
     } catch (error) {
       if (contacts.size === 0) {
@@ -498,10 +549,11 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
         const payload = JSON.parse(event.data || '{}');
         if (payload?.status === 'live') {
           opened = true;
-          status = { count: contacts.size, source: 'AISStream · Vercel' };
+          feedSource = text(payload?.source) || 'LIVE AIS';
+          status = { count: contacts.size, source: feedSource };
           updateContactHud(root,null,status);
         } else if (payload?.error && contacts.size === 0) {
-          status = { count: 0, error: String(payload.error) };
+          status = { count: 0, source: 'AIS RECONNECTING' };
           updateContactHud(root,null,status);
         }
       } catch {}
@@ -510,18 +562,23 @@ function createVesselLayer(viewer: Cesium.Viewer, root: HTMLElement) {
       try { absorb(JSON.parse(event.data)); } catch {}
     });
     eventSource.onerror = () => {
-      eventSource?.close();
-      eventSource = null;
-      if (!opened || contacts.size === 0) void pollSnapshot();
-      else fallbackTimer = window.setTimeout(()=>void pollSnapshot(), 4_000);
+      if (contacts.size === 0) {
+        status = { count: 0, source: opened ? 'AIS · RECONNECTING' : 'AIS · CONNECTING' };
+        updateContactHud(root,null,status);
+      }
+      // Native EventSource automatically reconnects after the Vercel stream closes.
     };
   }
 
+  if (contacts.size) scheduleRender();
+  void pollSnapshot();
   startLiveStream();
   window.addEventListener('beforeunload',()=>{
     eventSource?.close();
     if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
     if (renderTimer !== null) window.clearTimeout(renderTimer);
+    if (persistTimer !== null) window.clearTimeout(persistTimer);
+    persistContacts();
   }, { once:true });
   return { getStatus:()=>status };
 }
@@ -535,7 +592,7 @@ function updateContactHud(root: HTMLElement, air: LiveContactStatus | null, sea:
   (root.querySelector('#sea-count') as HTMLElement).textContent = lastSea.error ? '—' : String(lastSea.count);
   const total = (lastAir.error ? 0 : lastAir.count) + (lastSea.error ? 0 : lastSea.count);
   const scanCopy = root.querySelector('#scan-copy') as HTMLElement;
-  scanCopy.textContent = total > 0 ? `${total} TARGET${total===1?'':'S'} IN VIEW` : lastSea.error ? 'AIS UNAVAILABLE · AIR SCAN ACTIVE' : 'SCANNING BERMUDA…';
+  scanCopy.textContent = total > 0 ? `${total} TARGET${total===1?'':'S'} IN VIEW` : lastSea.error ? 'AIR LIVE · SEA FEED DEGRADED' : 'LIVE AIR + SEA SCAN';
 }
 
 function acquisition(root: HTMLElement, message: string) {

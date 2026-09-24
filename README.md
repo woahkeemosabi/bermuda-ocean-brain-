@@ -14,3 +14,12 @@ Cinematic Cesium/Google 3D Bermuda intelligence interface.
 - `AISSTREAM_API_KEY` — server-only, never use a `VITE_` prefix
 
 Google Photorealistic 3D uses Cesium ion asset 2275207.
+
+
+## v20 visual cleanup
+- Replaced oversized yellow aircraft glyphs with white airframe silhouettes.
+- Removed aircraft heading-vector and trail clutter.
+- Removed cyan GIS boundary lines; marine intelligence is now fill-first and subtle.
+- Subsea cables are amber and only appear at close range.
+- AIS now uses the streaming endpoint as primary with automatic EventSource reconnect and a broader Bermuda regional box.
+- A connected-but-empty AIS stream displays SEA 0 rather than implying a feed failure.
