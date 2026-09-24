@@ -29,3 +29,16 @@ The app works without the Google key using the upstream God’s Eye fallback ren
 - Retina render-quality tuning
 - ArcGIS JSON to GeoJSON marine layer bridge
 - Bermuda spatial filter for heavy cable data
+
+
+## v8 Mission Control
+
+- Photorealistic Google 3D through Cesium ion.
+- Mobile Mission Control UI inspired by spatial-intelligence and modern GIS workspaces.
+- Live layer controls for AIS vessels, OpenSky aircraft, wind, weather radar, clouds, lightning, and cyclone advisories.
+- Stronger Bermuda marine symbology and automatic camera framing for large-area layers.
+- Bermuda telemetry dashboard with live weather and a clearly labelled modeled electricity-demand estimate.
+
+### Power telemetry note
+
+The power card is an estimate, not a live BELCO feed. It is deliberately labelled `MODEL` in the UI and is anchored to the Bermuda IRP 2026 annual system-load reference until a real-time utility telemetry source is available.
