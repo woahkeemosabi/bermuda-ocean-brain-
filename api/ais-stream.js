@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const timer = setTimeout(stop, 54000);
   const heartbeat = setInterval(() => { if (!controller.signal.aborted) res.write(': keepalive\n\n'); }, 12000);
   try {
-    send('status', { status: 'connecting', source: 'Bermuda AIS', pipelineVersion: 'v24' });
+    send('status', { status: 'connecting', source: 'Bermuda AIS', pipelineVersion: 'v25' });
     const options = { signal: controller.signal };
     const seed = async source => {
       const result = await fetchSnapshot(source, options);
