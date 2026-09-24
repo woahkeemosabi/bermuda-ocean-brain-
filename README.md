@@ -1,44 +1,18 @@
-# Bermuda Ocean Brain
+# Bermuda Ocean Brain — v11 Entity Intelligence
 
-Production-oriented Vercel package using the actual open-source God's Eye View runtime pinned to commit `082074a00684af97458b85529093e2b2a9f28ed1`.
+Mobile-first Cesium/God's Eye Bermuda mission-control build.
 
-## Current architecture
-- God’s Eye View owns globe, HUD, camera, controls and native AIS vessel rendering.
-- Vercel serves the production frontend and same-origin API facade.
-- `/api/ais-live` and `/api/ais-live/track` proxy the existing Ocean Brain AIS backend so the AISStream credential stays server-side during migration.
-- Bermuda MSP layers are fetched server-side and cached at Vercel’s edge.
-- `VITE_GOOGLE_MAPS_API_KEY` enables Google Photorealistic 3D Tiles when configured.
+## v11 changes
+- Type-aware aircraft silhouettes: airliner, cargo, business jet, prop/turboprop, helicopter.
+- Aircraft labels decode common ICAO type codes (for example B738, A320, B77W) when the live source supplies them.
+- Type-aware vessel silhouettes: sailboat, yacht, superyacht/megayacht, cargo, tanker, fishing, tug, ferry/passenger.
+- Vessel class heuristics use AIS type plus reported length where available.
+- Tap aircraft, vessels, or Bermuda marine features for a target-intelligence card.
+- Ocean Intelligence features carry their source metadata into the inspector.
+- Coral, seagrass, seamount, cable, shelf/slope and boundary layers now use distinct map symbology instead of generic point dots.
+- Dense coral/seagrass observations cluster with layer-specific icons and counts.
+- Subsea cables use a glow line; seamounts use mountain markers; large marine zones receive readable labels.
+- Ocean layer buttons report feature counts and prompt for map inspection.
+- Layer toggles never move the camera; only Focus recenters Bermuda.
 
-## Production setup
-1. Import/deploy this directory as a Vercel project.
-2. Add `VITE_GOOGLE_MAPS_API_KEY` in Vercel Project Settings > Environment Variables.
-3. In Google Cloud, enable Map Tiles API and restrict the key to the production Vercel/custom domain.
-4. Deploy production.
-
-The app works without the Google key using the upstream God’s Eye fallback renderer.
-
-
-## Mobile v3
-- Clean map on launch; marine layers are opt-in.
-- Bermuda MSP subsea cable layer replaces the global TeleGeography mobile layer.
-- Dense Point GeoJSON uses compact points instead of Cesium pin billboards.
-
-
-## v5 mobile fixes
-- Near-nadir Bermuda camera framing
-- Retina render-quality tuning
-- ArcGIS JSON to GeoJSON marine layer bridge
-- Bermuda spatial filter for heavy cable data
-
-
-## v8 Mission Control
-
-- Photorealistic Google 3D through Cesium ion.
-- Mobile Mission Control UI inspired by spatial-intelligence and modern GIS workspaces.
-- Live layer controls for AIS vessels, OpenSky aircraft, wind, weather radar, clouds, lightning, and cyclone advisories.
-- Stronger Bermuda marine symbology and automatic camera framing for large-area layers.
-- Bermuda telemetry dashboard with live weather and a clearly labelled modeled electricity-demand estimate.
-
-### Power telemetry note
-
-The power card is an estimate, not a live BELCO feed. It is deliberately labelled `MODEL` in the UI and is anchored to the Bermuda IRP 2026 annual system-load reference until a real-time utility telemetry source is available.
+Exact external photos/registry imagery are intentionally not included.
