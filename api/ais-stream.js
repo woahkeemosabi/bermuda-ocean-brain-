@@ -1,136 +1,81 @@
-import http from 'node:http';
+import dns from 'node:dns';
 
-const HOST = 'ais.marops.bm';
-const IP = '64.147.83.207';
-const PORT = 82;
+const ZONE = 'marops.bm';
+const TARGET = 'ais.marops.bm';
 
-function clean(value) {
-  return String(value ?? '').replace(/\s+/g, ' ').trim();
+function cleanError(error) {
+  return { code: error?.code ?? null, message: String(error?.message ?? error ?? '').slice(0, 300) };
 }
 
-async function request(path = '/', timeoutMs = 7000) {
-  const started = Date.now();
-  return await new Promise((resolve) => {
-    let settled = false;
-    const finish = (body) => {
-      if (settled) return;
-      settled = true;
-      resolve({ ms: Date.now() - started, ...body });
-    };
-    const req = http.request({
-      host: IP,
-      port: PORT,
-      path,
-      method: 'GET',
-      headers: {
-        Host: HOST,
-        Accept: '*/*',
-        'User-Agent': 'Bermuda-Ocean-Brain-BMOC/1.0',
-      },
-    }, (response) => {
-      let body = '';
-      response.setEncoding('utf8');
-      response.on('data', (chunk) => { if (body.length < 250000) body += chunk; });
-      response.on('end', () => finish({
-        ok: true,
-        status: response.statusCode ?? null,
-        headers: {
-          server: response.headers.server ?? null,
-          location: response.headers.location ?? null,
-          contentType: response.headers['content-type'] ?? null,
-          contentLength: response.headers['content-length'] ?? null,
-        },
-        body,
-      }));
-    });
-    req.setTimeout(timeoutMs, () => req.destroy(new Error('timeout')));
-    req.on('error', (error) => finish({ ok: false, status: null, headers: {}, body: '', error: error?.code || clean(error?.message) }));
-    req.end();
-  });
+async function safe(label, fn) {
+  try { return { label, ok: true, value: await fn() }; }
+  catch (error) { return { label, ok: false, error: cleanError(error) }; }
 }
 
-function resolvePath(base, src) {
-  if (!src || /^(https?:)?\/\//i.test(src)) return src;
-  if (src.startsWith('/')) return src;
-  const prefix = base.endsWith('/') ? base : base.slice(0, base.lastIndexOf('/') + 1);
-  return prefix + src.replace(/^\.\//, '');
+async function resolveHostAddresses(host) {
+  const out = [];
+  try { out.push(...await dns.promises.resolve4(host)); } catch {}
+  try { out.push(...await dns.promises.resolve6(host)); } catch {}
+  return [...new Set(out)];
 }
 
-function extractUrls(text) {
-  const found = new Set();
-  const patterns = [
-    /(?:https?:|wss?:)\/\/[^\s"'<>]+/gi,
-    /["']([^"']*(?:\.ashx|\.asmx|\.aspx|\.php|\.json|\.xml|\.cgi|\/api\/|\/ajax\/|\/data\/|\/ais\/)[^"']*)["']/gi,
-  ];
-  for (const pattern of patterns) {
-    for (const match of text.matchAll(pattern)) found.add(clean(match[1] ?? match[0]));
+async function queryAuthority(nsHost) {
+  const addresses = await resolveHostAddresses(nsHost);
+  const queries = [];
+  for (const address of addresses) {
+    const resolver = new dns.promises.Resolver();
+    resolver.setServers([address]);
+    const [a, aaaa, cname, any, soa] = await Promise.all([
+      safe('A', () => resolver.resolve4(TARGET)),
+      safe('AAAA', () => resolver.resolve6(TARGET)),
+      safe('CNAME', () => resolver.resolveCname(TARGET)),
+      safe('ANY', () => resolver.resolveAny(TARGET)),
+      safe('SOA', () => resolver.resolveSoa(ZONE)),
+    ]);
+    queries.push({ nameserver: nsHost, address, records: { a, aaaa, cname, any, soa } });
   }
-  return [...found].filter(Boolean).slice(0, 120);
+  return { nameserver: nsHost, addresses, queries };
 }
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
-  const page = await request('/ais/');
-  if (!page.ok) {
-    return res.status(502).json({
-      diagnosticVersion: 'bmoc-port82-v1',
-      checkedAt: new Date().toISOString(),
-      endpoint: `http://${HOST}:${PORT}/ais/`,
-      ip: IP,
-      page,
-    });
-  }
+  const system = {
+    zoneNs: await safe('NS marops.bm', () => dns.promises.resolveNs(ZONE)),
+    zoneSoa: await safe('SOA marops.bm', () => dns.promises.resolveSoa(ZONE)),
+    zoneA: await safe('A marops.bm', () => dns.promises.resolve4(ZONE)),
+    targetA: await safe('A ais.marops.bm', () => dns.promises.resolve4(TARGET)),
+    targetCname: await safe('CNAME ais.marops.bm', () => dns.promises.resolveCname(TARGET)),
+    targetAny: await safe('ANY ais.marops.bm', () => dns.promises.resolveAny(TARGET)),
+  };
 
-  const html = page.body;
-  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? null;
-  const scripts = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
-  const links = [...html.matchAll(/<a[^>]+href=["']([^"']+)["']/gi)].map((m) => m[1]);
-  const iframes = [...html.matchAll(/<iframe[^>]+src=["']([^"']+)["']/gi)].map((m) => m[1]);
-  const forms = [...html.matchAll(/<form[^>]+action=["']([^"']*)["']/gi)].map((m) => m[1]);
-  const inlineScripts = [...html.matchAll(/<script(?![^>]+src=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).filter(Boolean);
+  const nsHosts = system.zoneNs.ok && Array.isArray(system.zoneNs.value) ? system.zoneNs.value : [];
+  const authoritative = [];
+  for (const ns of nsHosts) authoritative.push(await queryAuthority(ns));
 
-  const scriptBodies = [];
-  for (const src of scripts.slice(0, 15)) {
-    const path = resolvePath('/ais/', src);
-    if (!path || /^(https?:)?\/\//i.test(path)) {
-      scriptBodies.push({ src, skipped: 'external' });
-      continue;
+  const recovered = [];
+  for (const server of authoritative) {
+    for (const q of server.queries) {
+      const a = q.records.a;
+      if (a.ok && Array.isArray(a.value)) recovered.push(...a.value);
+      const cname = q.records.cname;
+      if (cname.ok && Array.isArray(cname.value)) recovered.push(...cname.value.map((v) => `CNAME:${v}`));
     }
-    const result = await request(path);
-    scriptBodies.push({
-      src,
-      path,
-      ok: result.ok,
-      status: result.status,
-      contentType: result.headers?.contentType ?? null,
-      bytes: result.body?.length ?? 0,
-      discoveredUrls: extractUrls(result.body || ''),
-      preview: clean(result.body || '').slice(0, 5000),
-      error: result.error ?? null,
-    });
   }
-
-  const allCode = [html, ...inlineScripts, ...scriptBodies.map((s) => s.preview || '')].join('\n');
 
   return res.status(200).json({
-    diagnosticVersion: 'bmoc-port82-v1',
+    diagnosticVersion: 'bmoc-authoritative-dns-v1',
     checkedAt: new Date().toISOString(),
-    endpoint: `http://${HOST}:${PORT}/ais/`,
-    directTarget: `${IP}:${PORT}`,
-    page: {
-      status: page.status,
-      contentType: page.headers.contentType,
-      server: page.headers.server,
-      title: title ? clean(title) : null,
-      bytes: html.length,
-      scripts,
-      links: links.slice(0, 100),
-      iframes,
-      forms,
-      discoveredUrls: extractUrls(allCode),
-      preview: clean(html).slice(0, 6000),
-    },
-    scriptBodies,
+    zone: ZONE,
+    target: TARGET,
+    publishedEndpoint: 'http://ais.marops.bm:82/ais/',
+    system,
+    authoritative,
+    recovered: [...new Set(recovered)],
+    interpretation: recovered.length
+      ? 'The marops.bm authoritative DNS still exposes a BMOC AIS target. Use the recovered host/IP to test port 82 directly.'
+      : nsHosts.length
+        ? 'The authoritative marops.bm zone was reached but no current AIS A/CNAME record was recovered. The published BMOC link is likely stale, restricted, or was removed from public DNS.'
+        : 'Could not discover the marops.bm authoritative nameservers from this runtime.',
   });
 }
