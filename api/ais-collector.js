@@ -1,7 +1,8 @@
 import { collectAis, pruneRows } from '../lib/ais.js';
+import { collectBmoc } from '../lib/bmoc.js';
 import { readAisSnapshot, writeAisSnapshot } from '../lib/ais-snapshot.js';
 
-const PIPELINE_VERSION = 'v26';
+const PIPELINE_VERSION = 'v27-bmoc';
 const SAMPLE_MS = 48_000;
 const MIN_ATTEMPT_GAP_MS = 42_000;
 
@@ -19,14 +20,31 @@ function storageError(error) {
   };
 }
 
+function mergeByMmsi(previousRows = [], nextRows = []) {
+  const map = new Map();
+  for (const row of previousRows) {
+    const key = String(row?.mmsi ?? '').trim();
+    if (key) map.set(key, { ...row });
+  }
+  for (const row of nextRows) {
+    const key = String(row?.mmsi ?? '').trim();
+    if (key) map.set(key, { ...(map.get(key) ?? {}), ...row });
+  }
+  return [...map.values()];
+}
+
 export default async function handler(req, res) {
   const apiKey = process.env.AISSTREAM_API_KEY;
-  if (!apiKey) {
+  const bmocUsername = process.env.BMOC_USERNAME;
+  const bmocPassword = process.env.BMOC_PASSWORD;
+
+  if (!apiKey && !(bmocUsername && bmocPassword)) {
     return json(res, 503, {
       pipelineVersion: PIPELINE_VERSION,
       rows: [],
-      status: 'missing-key',
-      error: 'AISSTREAM_API_KEY is not configured on Vercel.',
+      status: 'missing-provider-credentials',
+      error: 'Neither BMOC credentials nor AISSTREAM_API_KEY are configured on Vercel.',
+      action: 'Set BMOC_USERNAME and BMOC_PASSWORD for the official Bermuda feed, or configure AISSTREAM_API_KEY as fallback.',
     });
   }
 
@@ -48,6 +66,7 @@ export default async function handler(req, res) {
       status: previous?.collecting ? 'collector-already-running' : 'recent-attempt',
       rows: previousRows,
       count: previousRows.length,
+      source: previous?.source ?? null,
       lastAttemptAt,
       collectedAt: previous?.collectedAt ?? null,
     });
@@ -68,22 +87,41 @@ export default async function handler(req, res) {
     return json(res, 503, { pipelineVersion: PIPELINE_VERSION, rows: previousRows, ...storageError(error) });
   }
 
-  const { rows, diagnostics } = await collectAis(apiKey, { sampleMs: SAMPLE_MS, seedRows: previousRows });
+  // Primary provider: Bermuda Maritime Operations Centre (official local AIS/VTS source).
+  const bmoc = await collectBmoc({ username: bmocUsername, password: bmocPassword });
+
+  let source = 'BMOC';
+  let providerRows = bmoc.rows;
+  let fallbackDiagnostics = null;
+
+  // Fallback: AISStream. This remains useful when BMOC credentials are not yet configured
+  // or if the official service is temporarily unavailable.
+  if (!providerRows.length && apiKey) {
+    const fallback = await collectAis(apiKey, { sampleMs: SAMPLE_MS, seedRows: previousRows });
+    providerRows = fallback.rows;
+    fallbackDiagnostics = fallback.diagnostics;
+    source = providerRows.length ? 'AISStream fallback' : 'BMOC + AISStream fallback';
+  }
+
   const collectedAtMs = Date.now();
-  const freshRows = pruneRows(rows, collectedAtMs);
-  const status = freshRows.length
-    ? 'live-snapshot'
-    : diagnostics.subscriptionConfirmed
-      ? 'no-positions-in-window'
-      : diagnostics.error
-        ? 'stream-error'
-        : 'no-data-received';
+  const mergedRows = source === 'BMOC'
+    ? mergeByMmsi(previousRows, providerRows)
+    : providerRows;
+  const freshRows = pruneRows(mergedRows, collectedAtMs);
+
+  let status = 'no-data-received';
+  if (freshRows.length) status = 'live-snapshot';
+  else if (bmoc.diagnostics.status === 'auth-rejected') status = 'bmoc-auth-rejected';
+  else if (bmoc.diagnostics.status === 'authenticated-unparsed') status = 'bmoc-parser-needed';
+  else if (fallbackDiagnostics?.subscriptionConfirmed) status = 'no-positions-in-window';
+  else if (fallbackDiagnostics?.error) status = 'stream-error';
+  else if (!bmoc.diagnostics.configured) status = 'bmoc-not-configured';
 
   const snapshot = {
     pipelineVersion: PIPELINE_VERSION,
-    source: 'AISStream',
+    source,
     scope: 'bermuda',
-    coverage: '31.55,-65.75,33.05,-63.75',
+    coverage: 'Bermuda territorial and approach waters',
     status,
     rows: freshRows,
     count: freshRows.length,
@@ -92,12 +130,16 @@ export default async function handler(req, res) {
     collectedAt: new Date(collectedAtMs).toISOString(),
     collectedAtMs,
     diagnostics: {
-      ...diagnostics,
+      primary: bmoc.diagnostics,
+      fallback: fallbackDiagnostics,
       retainedContacts: freshRows.length,
-      sampleMs: SAMPLE_MS,
-      note: diagnostics.positionFrames > 0
-        ? 'Real AIS positions were received and retained in the persistent Bermuda snapshot.'
-        : 'Subscription was sampled for 48 seconds. Existing real contacts remain until their 30-minute TTL expires.',
+      note: source === 'BMOC' && freshRows.length
+        ? 'Official BMOC vessel positions are feeding the persistent Bermuda snapshot.'
+        : bmoc.diagnostics.status === 'not-configured'
+          ? 'BMOC is wired as the primary provider but requires BMOC_USERNAME and BMOC_PASSWORD. AISStream remains the fallback.'
+          : bmoc.diagnostics.status === 'authenticated-unparsed'
+            ? 'BMOC authentication succeeded. Adjust the response parser using the safe diagnostics; credentials and raw protected data are not logged.'
+            : 'BMOC did not yield positions, so AISStream was sampled as fallback.',
     },
   };
 
@@ -115,9 +157,11 @@ export default async function handler(req, res) {
 
   console.log('[ais-collector]', JSON.stringify({
     pipelineVersion: PIPELINE_VERSION,
+    source,
     status,
     rows: freshRows.length,
-    diagnostics: snapshot.diagnostics,
+    bmocStatus: bmoc.diagnostics.status,
+    fallbackStatus: fallbackDiagnostics?.subscriptionConfirmed ? 'subscribed' : fallbackDiagnostics?.error ? 'error' : fallbackDiagnostics ? 'no-data' : 'not-used',
   }));
 
   return json(res, 200, snapshot);
