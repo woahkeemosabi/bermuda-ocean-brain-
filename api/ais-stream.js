@@ -42,7 +42,7 @@ async function fetchJson(url, timeoutMs = 8000) {
   }
 }
 
-async function fetchPage(url, timeoutMs = 8000) {
+async function fetchPage(url, timeoutMs = 12000) {
   const started = Date.now();
   try {
     const response = await fetch(url, {
@@ -72,7 +72,7 @@ async function fetchPage(url, timeoutMs = 8000) {
   }
 }
 
-async function sampleAis(apiKey, boundingBoxes, durationMs = 12000) {
+async function sampleAis(apiKey, boundingBoxes, durationMs = 10000) {
   const started = Date.now();
   const diag = {
     connected: false,
@@ -158,12 +158,13 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   const apiKey = process.env.AISSTREAM_API_KEY;
 
-  const [aisBermuda, aisReference, fachaBermuda, openWatersBermuda, bmocAis] = await Promise.all([
+  const [aisBermuda, aisReference, fachaBermuda, openWatersBermuda, bmocHttps, bmocHttp] = await Promise.all([
     sampleAis(apiKey, BERMUDA),
     sampleAis(apiKey, REFERENCE),
     fetchJson('https://api.facha.dev/v1/ship/radius/32.3078/-64.7505/30'),
     fetchJson('https://ais.openwaters.io/v1/vessels?bbox=31.55,-65.75,33.05,-63.75'),
     fetchPage('https://ais.marops.bm'),
+    fetchPage('http://ais.marops.bm'),
   ]);
 
   const upstreamSilent = Boolean(
@@ -172,7 +173,7 @@ export default async function handler(req, res) {
   );
 
   return res.status(200).json({
-    diagnosticVersion: 'ais-proof-v2',
+    diagnosticVersion: 'ais-proof-v3',
     checkedAt: new Date().toISOString(),
     apiKeyConfigured: Boolean(apiKey),
     aisstream: {
@@ -193,7 +194,8 @@ export default async function handler(req, res) {
     },
     bermudaOfficial: {
       source: 'BMOC AIS Webserver linked by Bermuda Marine & Ports',
-      ...bmocAis,
+      https: bmocHttps,
+      http: bmocHttp,
     },
   });
 }
