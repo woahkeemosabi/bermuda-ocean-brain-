@@ -1,7 +1,7 @@
 import { pruneRows } from '../lib/ais.js';
 import { readAisSnapshot } from '../lib/ais-snapshot.js';
 
-const PIPELINE_VERSION = 'v26';
+const PIPELINE_VERSION = 'v27-bmoc';
 
 function storageError(error) {
   const message = error instanceof Error ? error.message : String(error);
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       rows: [],
       count: 0,
-      source: 'AISStream persistent snapshot',
+      source: 'BMOC primary / AISStream fallback persistent snapshot',
       pipelineVersion: PIPELINE_VERSION,
       status: 'warming',
       collecting: false,
@@ -49,10 +49,10 @@ export default async function handler(req, res) {
 
   const body = {
     ...snapshot,
-    pipelineVersion: PIPELINE_VERSION,
+    pipelineVersion: snapshot.pipelineVersion ?? PIPELINE_VERSION,
     rows,
     count: rows.length,
-    source: 'AISStream persistent snapshot',
+    source: snapshot.source ?? 'BMOC primary / AISStream fallback persistent snapshot',
     ageSec,
     unavailable: false,
     error: null,
@@ -60,12 +60,13 @@ export default async function handler(req, res) {
   };
 
   console.log('[ais-live]', JSON.stringify({
-    pipelineVersion: PIPELINE_VERSION,
+    pipelineVersion: body.pipelineVersion,
+    source: body.source,
     status: body.status,
     rows: body.count,
     collecting: Boolean(body.collecting),
     ageSec,
-    diagnostics: body.diagnostics ?? null,
+    bmocStatus: body.diagnostics?.primary?.status ?? null,
   }));
 
   return res.status(200).json(body);
