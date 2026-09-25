@@ -15,6 +15,7 @@ async function fetchJson(url, timeoutMs = 8000) {
     const response = await fetch(url, {
       headers: { Accept: 'application/json, application/geo+json' },
       signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'follow',
     });
     let body = null;
     try { body = await response.json(); } catch {}
@@ -30,12 +31,44 @@ async function fetchJson(url, timeoutMs = 8000) {
     return {
       ok: response.ok,
       httpStatus: response.status,
+      finalUrl: response.url,
+      contentType: response.headers.get('content-type'),
       rawCount,
       ms: Date.now() - started,
       error: response.ok ? null : text(body?.error ?? body?.message ?? response.statusText).slice(0, 240),
     };
   } catch (error) {
-    return { ok: false, httpStatus: null, rawCount: null, ms: Date.now() - started, error: text(error?.message || error).slice(0, 240) };
+    return { ok: false, httpStatus: null, finalUrl: null, contentType: null, rawCount: null, ms: Date.now() - started, error: text(error?.message || error).slice(0, 240) };
+  }
+}
+
+async function fetchPage(url, timeoutMs = 8000) {
+  const started = Date.now();
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'text/html,application/xhtml+xml,*/*;q=0.8', 'User-Agent': 'Bermuda-Ocean-Brain-Diagnostic/1.0' },
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'follow',
+    });
+    const body = await response.text();
+    const title = body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, ' ').trim() ?? null;
+    const scripts = [...body.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].slice(0, 20).map(m => m[1]);
+    const links = [...body.matchAll(/<a[^>]+href=["']([^"']+)["']/gi)].slice(0, 20).map(m => m[1]);
+    return {
+      ok: response.ok,
+      httpStatus: response.status,
+      finalUrl: response.url,
+      contentType: response.headers.get('content-type'),
+      title,
+      bytes: body.length,
+      scripts,
+      links,
+      preview: body.replace(/\s+/g, ' ').slice(0, 700),
+      ms: Date.now() - started,
+      error: response.ok ? null : text(response.statusText).slice(0, 240),
+    };
+  } catch (error) {
+    return { ok: false, httpStatus: null, finalUrl: null, contentType: null, title: null, bytes: null, scripts: [], links: [], preview: null, ms: Date.now() - started, error: text(error?.message || error).slice(0, 240) };
   }
 }
 
@@ -125,11 +158,12 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   const apiKey = process.env.AISSTREAM_API_KEY;
 
-  const [aisBermuda, aisReference, fachaBermuda, openWatersBermuda] = await Promise.all([
+  const [aisBermuda, aisReference, fachaBermuda, openWatersBermuda, bmocAis] = await Promise.all([
     sampleAis(apiKey, BERMUDA),
     sampleAis(apiKey, REFERENCE),
     fetchJson('https://api.facha.dev/v1/ship/radius/32.3078/-64.7505/30'),
     fetchJson('https://ais.openwaters.io/v1/vessels?bbox=31.55,-65.75,33.05,-63.75'),
+    fetchPage('https://ais.marops.bm'),
   ]);
 
   const upstreamSilent = Boolean(
@@ -138,7 +172,7 @@ export default async function handler(req, res) {
   );
 
   return res.status(200).json({
-    diagnosticVersion: 'ais-proof-v1',
+    diagnosticVersion: 'ais-proof-v2',
     checkedAt: new Date().toISOString(),
     apiKeyConfigured: Boolean(apiKey),
     aisstream: {
@@ -147,13 +181,19 @@ export default async function handler(req, res) {
       upstreamSilent,
       interpretation: upstreamSilent
         ? 'AISStream accepted both subscriptions but produced no position frames in Bermuda or the reference area.'
-        : aisReference.positionFrames > 0
-          ? 'AISStream is producing positions in the reference area; Bermuda silence may be coverage/traffic specific.'
-          : 'AISStream result is inconclusive; inspect diagnostics.',
+        : aisReference.positionFrames > 0 && aisBermuda.positionFrames === 0
+          ? 'AISStream is healthy, but its current receiver coverage produced no Bermuda positions during the sample.'
+          : aisReference.positionFrames > 0
+            ? 'AISStream is producing positions in the reference area.'
+            : 'AISStream result is inconclusive; inspect diagnostics.',
     },
     fallbacks: {
       fachaBermuda,
       openWatersBermuda,
+    },
+    bermudaOfficial: {
+      source: 'BMOC AIS Webserver linked by Bermuda Marine & Ports',
+      ...bmocAis,
     },
   });
 }
