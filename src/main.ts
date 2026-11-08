@@ -213,7 +213,7 @@ async function addGoogle3D(viewer: Cesium.Viewer) {
 
 const marineDefs = [
   { key: 'shelf', id: 'shelf', color: '#23a8e8', fill: 0.05, line: 0.48, minKm: 0, maxKm: 165, inspect: false },
-  { key: 'territorial-sea', id: 'territorial', color: '#35e6ff', fill: 0.015, line: 0.48, minKm: 30, maxKm: 230, inspect: false },
+  { key: 'territorial-seas', id: 'territorial', color: '#35e6ff', fill: 0.015, line: 0.48, minKm: 30, maxKm: 230, inspect: false },
   { key: 'coral-reef-type', id: 'coral', color: '#22f2d2', fill: 0.08, line: 0.28, minKm: 0, maxKm: 75, inspect: false },
   { key: 'seagrass', id: 'seagrass', color: '#58ee9a', fill: 0.07, line: 0.20, minKm: 0, maxKm: 18, inspect: false },
   { key: 'eez', id: 'eez', color: '#68a7ff', fill: 0.012, line: 0.28, minKm: 80, maxKm: 500, inspect: false },
@@ -226,7 +226,7 @@ async function loadMarine(viewer: Cesium.Viewer) {
   const loaded: Array<{ def: typeof marineDefs[number]; source: Cesium.GeoJsonDataSource }> = [];
   await Promise.all(marineDefs.map(async (def) => {
     try {
-      const r = await fetch(`/api/marine-layer/${def.key}`, { headers: { Accept: 'application/json' } });
+      const r = await fetch(`/api/marine/layers/${def.key}`, { headers: { Accept: 'application/json' } });
       if (!r.ok) return;
       const geo = await r.json();
       const ds = await Cesium.GeoJsonDataSource.load(geo, { clampToGround: true });
