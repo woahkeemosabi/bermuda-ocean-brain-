@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       rows: [],
       count: 0,
-      source: 'BMOC primary / AISStream fallback persistent snapshot',
+      source: 'No AIS snapshot available',
       pipelineVersion: PIPELINE_VERSION,
       status: 'warming',
       collecting: false,
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     pipelineVersion: snapshot.pipelineVersion ?? PIPELINE_VERSION,
     rows,
     count: rows.length,
-    source: snapshot.source ?? 'BMOC primary / AISStream fallback persistent snapshot',
+    source: snapshot.source ?? 'AIS source unspecified',
     ageSec,
     unavailable: false,
     error: null,
